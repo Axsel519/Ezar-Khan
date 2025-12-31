@@ -247,7 +247,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               onClick={() => setShowOffcanvas(false)}
             >
               <img
-                src="../../public/images/logo-zina.png"
+                src="/logo-ek.png"
                 alt="logo"
                 style={{ width: "50px", height: "auto" }}
               />
@@ -657,7 +657,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             {/* رابط اللوجو */}
             <Link to="/" className="me-5">
               <img
-                src="../../public/images/logo-zina.png"
+                src="/logo-ek.png"
                 alt="logo"
                 style={{ width: "50px", height: "auto" }}
               />
