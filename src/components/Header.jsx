@@ -249,7 +249,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               <img
                 src="/logo-ek.png"
                 alt="logo"
-                style={{ width: "50px", height: "auto" }}
+                style={{ width: "80px", height: "auto" }}
               />
             </Link>
 
@@ -659,7 +659,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               <img
                 src="/logo-ek.png"
                 alt="logo"
-                style={{ width: "50px", height: "auto" }}
+                style={{ width: "80px", height: "auto" }}
               />
             </Link>
 
