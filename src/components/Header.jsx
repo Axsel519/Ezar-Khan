@@ -266,7 +266,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   className="form-control form-control-sm"
-                  style={{ width: "150px", borderRadius: "20px" }}
+                  style={{ width: "27vw", borderRadius: "20px" }}
                 />
 
                 {filteredSuggestions.length > 0 && (

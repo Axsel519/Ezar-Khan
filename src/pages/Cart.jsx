@@ -2,8 +2,27 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../components/AuthContext";
 
 export default function Cart({ cartItems = [], onUpdateCart }) {
+  const { isLoggedIn } = useAuth();
+
+  // Require authentication before showing the cart contents.
+  if (!isLoggedIn) {
+    return (
+      <div className="empty-cart auth-required">
+        <div className="empty-cart-icon">
+          <i className="bi bi-person-circle"></i>
+        </div>
+        <h2>Please sign in to view your cart</h2>
+        <p className="text-muted">You should open your account to continue.</p>
+        <Link to="/login" className="btn btn-primary btn-lg mt-3">
+          Sign In
+        </Link>
+      </div>
+    );
+  }
+
   if (cartItems.length === 0) {
     return (
       <div className="empty-cart">
@@ -76,11 +95,11 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
               width="16"
               height="16"
               fill="currentColor"
-              class="bi bi-bag-check-fill"
+              className="bi bi-bag-check-fill"
               viewBox="0 0 16 16"
             >
               <path
-                fill-rule="evenodd"
+                fillRule="evenodd"
                 d="M10.5 3.5a2.5 2.5 0 0 0-5 0V4h5zm1 0V4H15v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4h3.5v-.5a3.5 3.5 0 1 1 7 0m-.646 5.354a.5.5 0 0 0-.708-.708L7.5 10.793 6.354 9.646a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0z"
               />
             </svg>{" "}
@@ -99,14 +118,17 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
               <span className="step-number">1</span>
               <span className="step-label">Cart</span>
             </div>
+            <div className="step-connector"></div>
             <div className="step">
               <span className="step-number">2</span>
               <span className="step-label">Information</span>
             </div>
+            <div className="step-connector"></div>
             <div className="step">
               <span className="step-number">3</span>
               <span className="step-label">Payment</span>
             </div>
+            <div className="step-connector"></div>
             <div className="step">
               <span className="step-number">4</span>
               <span className="step-label">Complete</span>
@@ -184,7 +206,6 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                     </div>
 
                     {/* Product Info */}
-
                     <div className="cart-item-info">
                       <div
                         className="close-icon"
@@ -209,6 +230,7 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                           <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
                         </svg>
                       </div>
+
                       {/* Product Name */}
                       <div className="cart-item-name-section">
                         <h3 className="product-name">{item.product.title}</h3>
@@ -226,6 +248,21 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                             </p>
                           </div>
                         )}
+                      </div>
+
+                      {/* Product Price */}
+                      <div className="product-price-section">
+                        <div className="price-display">
+                          <span className="current-price">
+                            {(item.product.price * item.quantity).toFixed(2)}{" "}
+                            EGP
+                          </span>
+                          {item.quantity > 1 && (
+                            <span className="unit-price text-muted">
+                              {item.product.price.toFixed(2)} EGP each
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Quantity Controls */}
@@ -425,7 +462,10 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
 
                 {/* Checkout Button */}
                 <div className="checkout-section">
-                  <button className="btn btn-primary btn-checkout w-100">
+                  <Link
+                    to="/checkout"
+                    className="btn btn-primary btn-checkout w-100"
+                  >
                     <div className="checkout-content">
                       <div className="checkout-text">
                         <i className="bi bi-lock-fill"></i>
@@ -435,33 +475,11 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                         <i className="bi bi-arrow-right"></i>
                       </div>
                     </div>
-                  </button>
+                  </Link>
 
                   <div className="secure-checkout">
                     <i className="bi bi-shield-check"></i>
                     <small>Secure 256-bit SSL encrypted checkout</small>
-                  </div>
-
-                  <div className="payment-methods">
-                    <p className="payment-title">We accept:</p>
-                    <div className="payment-icons">
-                      <div className="payment-icon">
-                        <i className="bi bi-credit-card"></i>
-                        <span>Cards</span>
-                      </div>
-                      <div className="payment-icon">
-                        <i className="bi bi-paypal"></i>
-                        <span>PayPal</span>
-                      </div>
-                      <div className="payment-icon">
-                        <i className="bi bi-bank"></i>
-                        <span>Bank Transfer</span>
-                      </div>
-                      <div className="payment-icon">
-                        <i className="bi bi-cash"></i>
-                        <span>Cash on Delivery</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
