@@ -4774,3 +4774,8 @@ h2 {
     width: 100%;
   }
 }
+
+.form-text.text-muted,
+.note-alert.alert.alert-warning.mt-3 {
+  text-align: end;
+}

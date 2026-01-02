@@ -411,7 +411,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                       className="offcanvas-title"
                       style={{ fontWeight: "bold" }}
                     >
-                      ZINA
+                      Ezar Khan
                     </h5>
                     <button
                       type="button"
