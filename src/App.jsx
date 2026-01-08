@@ -1,10 +1,9 @@
 /** @format */
 
 // ============================================
-// MAIN APPLICATION COMPONENT
+// MAIN APPLICATION COMPONENT - ROOT
 // ============================================
-// This is the root component that manages the overall application state
-// including authentication, cart management, and routing
+// Manages global state, routing, and provides context to all components
 
 import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
@@ -19,7 +18,7 @@ import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProductDetails from "./pages/ProductDetails";
-import Checkout from "./pages/Checkout"; // Import Checkout component
+import Checkout from "./pages/Checkout";
 
 // Layout Components
 import Header from "./components/Header";
@@ -31,9 +30,8 @@ import { loadCart, updateCart } from "./utils/cart";
 // ============================================
 // TOAST NOTIFICATION COMPONENT
 // ============================================
-// Displays temporary notifications for user actions
+// Displays temporary success/error/warning messages
 const Toast = ({ message, type = "success" }) => {
-  // Determine background color based on notification type
   const bgColor =
     type === "success"
       ? "bg-green-500"
@@ -66,49 +64,47 @@ const Toast = ({ message, type = "success" }) => {
 // ============================================
 // APP CONTENT COMPONENT
 // ============================================
-// Contains the main application logic and state management
+// Core application logic and state management
 function AppContent() {
   // ========== STATE MANAGEMENT ==========
-  const [cart, setCart] = useState([]); // Shopping cart items
-  const [searchQuery, setSearchQuery] = useState(""); // Search query from header
+  const [cart, setCart] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState({
     show: false,
     message: "",
     type: "success",
-  }); // Toast notification state
+  });
 
-  // ========== EFFECTS ==========
-  // Load cart from localStorage on initial render
+  // ========== INITIALIZATION EFFECTS ==========
+  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = loadCart();
     setCart(savedCart);
   }, []);
 
-  // ========== UTILITY FUNCTIONS ==========
-
+  // ========== CART MANAGEMENT FUNCTIONS ==========
   /**
-   * Displays a toast notification to the user
-   * @param {string} message - The message to display
-   * @param {string} type - The type of notification (success, error, warning, info)
+   * Show toast notification with auto-hide
+   * @param {string} message - Notification message
+   * @param {string} type - success/error/warning/info
    */
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
-    // Auto-hide toast after 3 seconds
     setTimeout(() => {
       setToast({ show: false, message: "", type: "success" });
     }, 3000);
   };
 
   /**
-   * Updates the shopping cart with a product and quantity
-   * @param {Object} product - The product to add/update
-   * @param {number} quantity - The quantity to set (0 removes the product)
+   * Update cart with product and quantity
+   * @param {Object} product - Product object
+   * @param {number} quantity - Desired quantity (0 to remove)
    */
   const handleUpdateCart = (product, quantity = 1) => {
     const updatedCart = updateCart(product, quantity);
     setCart(updatedCart);
 
-    // Show appropriate notification based on action
+    // Show appropriate toast message
     if (quantity === 0) {
       showToast(`تمت إزالة ${product.title} من السلة`, "info");
     } else if (quantity > 0) {
@@ -122,9 +118,9 @@ function AppContent() {
   };
 
   /**
-   * Gets the quantity of a specific product in the cart
-   * @param {string} productId - The ID of the product
-   * @returns {number} The quantity of the product in the cart
+   * Get quantity of specific product in cart
+   * @param {string} productId - Product ID
+   * @returns {number} Quantity in cart
    */
   const getProductQuantity = (productId) => {
     const item = cart.find((item) => item.product.id === productId);
@@ -132,12 +128,11 @@ function AppContent() {
   };
 
   /**
-   * Handles order confirmation with login verification
-   * @param {Object} orderDetails - The order details to confirm
-   * @returns {boolean} True if order can proceed, false if login is required
+   * Verify user authentication before order confirmation
+   * @param {Object} orderDetails - Order information
+   * @returns {boolean} True if user is authenticated
    */
   const handleOrderConfirmation = (orderDetails) => {
-    // Check if user is logged in
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     const currentUser = JSON.parse(
       localStorage.getItem("currentUser") || "null"
@@ -145,38 +140,36 @@ function AppContent() {
 
     if (!isLoggedIn || !currentUser) {
       showToast("الرجاء تسجيل الدخول أولاً لتأكيد الطلب", "warning");
-      return false; // Prevent order confirmation
+      return false;
     }
 
-    // User is logged in, proceed with order confirmation
     showToast(`تم تأكيد طلبك بنجاح، ${currentUser.name}`, "success");
-    return true; // Allow order confirmation
+    return true;
   };
 
-  // Calculate total items in cart for badge display
+  // Calculate total items in cart for header badge
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
+  // ========== RENDER ==========
   return (
     <div className="min-h-screen flex flex-col">
-      {/* HEADER COMPONENT */}
+      {/* Header with search and cart */}
       <Header
         cartCount={cartCount}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
       />
 
-      {/* MAIN CONTENT AREA */}
+      {/* Main content area */}
       <main className="flex-1">
         <Routes>
-          {/* HOME PAGE */}
+          {/* Public Routes */}
           <Route
             path="/"
             element={
               <Home onAdd={handleUpdateCart} getQuantity={getProductQuantity} />
             }
           />
-
-          {/* SHOP PAGE */}
           <Route
             path="/shop"
             element={
@@ -187,18 +180,14 @@ function AppContent() {
               />
             }
           />
-
-          {/* ABOUT PAGE */}
           <Route path="/about" element={<About />} />
-
-          {/* CONTACT PAGE */}
           <Route path="/contact" element={<Contact />} />
 
-          {/* AUTHENTICATION PAGES */}
+          {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* CART PAGE */}
+          {/* Protected Routes (require auth) */}
           <Route
             path="/cart"
             element={
@@ -209,8 +198,6 @@ function AppContent() {
               />
             }
           />
-
-          {/* CHECKOUT PAGE - 4-STEP PROCESS */}
           <Route
             path="/checkout"
             element={
@@ -218,7 +205,7 @@ function AppContent() {
             }
           />
 
-          {/* PRODUCT DETAILS PAGES */}
+          {/* Product Routes */}
           <Route
             path="/product/:id"
             element={
@@ -229,7 +216,6 @@ function AppContent() {
               />
             }
           />
-
           <Route
             path="/shop/:id"
             element={
@@ -243,17 +229,17 @@ function AppContent() {
         </Routes>
       </main>
 
-      {/* FOOTER COMPONENT */}
+      {/* Footer */}
       <Footer />
 
-      {/* TOAST NOTIFICATION */}
+      {/* Toast Notifications */}
       {toast.show && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }
 
 // ============================================
-// MAIN APP COMPONENT WITH AUTH PROVIDER
+// MAIN APP EXPORT WITH AUTH PROVIDER
 // ============================================
 export default function App() {
   return (

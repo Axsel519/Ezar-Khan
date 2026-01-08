@@ -442,22 +442,6 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                       <span>Apply</span>
                     </button>
                   </div>
-                  <div className="available-promos">
-                    <div className="promo-tags">
-                      <span className="promo-tag">
-                        <i className="bi bi-lightning-fill me-1"></i>
-                        SAVE10
-                      </span>
-                      <span className="promo-tag">
-                        <i className="bi bi-truck me-1"></i>
-                        FREESHIP
-                      </span>
-                      <span className="promo-tag">
-                        <i className="bi bi-star-fill me-1"></i>
-                        WELCOME15
-                      </span>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Checkout Button */}

@@ -8,6 +8,8 @@ import { useAuth } from "../components/AuthContext";
 export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   const navigate = useNavigate();
   const { isLoggedIn, currentUser, logout, updateProfilePicture } = useAuth();
+
+  // State variables
   const [showOffcanvas, setShowOffcanvas] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [profileImage, setProfileImage] = useState(
@@ -15,22 +17,23 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   );
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
-  const userMenuRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // تتبع حجم الشاشة
+  // Refs
+  const fileInputRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  // Handle screen resize for mobile detection
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
     window.addEventListener("resize", handleResize);
-    handleResize(); // استدعاء أولي
+    handleResize();
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // تحديث صورة البروفايل عند تغيير المستخدم
+  // Update profile image when user changes
   useEffect(() => {
     if (currentUser?.profileImage) {
       setProfileImage(currentUser.profileImage);
@@ -39,7 +42,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     }
   }, [currentUser]);
 
-  // إغلاق القائمة عند النقر خارجها
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -47,56 +50,51 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
         setShowImageUpload(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // منع التمرير عند فتح Offcanvas
+  // Prevent scrolling when offcanvas is open
   useEffect(() => {
     if (showOffcanvas) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "auto";
     }
-
     return () => {
       document.body.style.overflow = "auto";
     };
   }, [showOffcanvas]);
 
-  // دالة معالجة اختيار صورة
+  // Handle image selection for profile picture
   const handleImageSelect = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("حجم الصورة يجب أن يكون أقل من 5MB");
-        return;
-      }
+    if (!file) return;
 
-      if (!file.type.startsWith("image/")) {
-        alert("الرجاء اختيار ملف صورة");
-        return;
-      }
-
-      uploadProfileImage(file);
+    if (file.size > 5 * 1024 * 1024) {
+      alert("حجم الصورة يجب أن يكون أقل من 5MB");
+      return;
     }
+
+    if (!file.type.startsWith("image/")) {
+      alert("الرجاء اختيار ملف صورة");
+      return;
+    }
+
+    uploadProfileImage(file);
   };
 
-  // دالة رفع الصورة
+  // Upload profile image
   const uploadProfileImage = (file) => {
     setUploading(true);
-
     setTimeout(() => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Image = reader.result;
-
         const updatedUser = {
           ...currentUser,
           profileImage: base64Image,
         };
-
         localStorage.setItem("currentUser", JSON.stringify(updatedUser));
 
         if (updateProfilePicture) {
@@ -106,20 +104,18 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
         setProfileImage(base64Image);
         setUploading(false);
         setShowImageUpload(false);
-
         window.dispatchEvent(new Event("authUpdate"));
       };
       reader.readAsDataURL(file);
     }, 1000);
   };
 
-  // دالة إزالة صورة البروفايل
+  // Remove profile image
   const removeProfileImage = () => {
     const updatedUser = {
       ...currentUser,
       profileImage: null,
     };
-
     localStorage.setItem("currentUser", JSON.stringify(updatedUser));
 
     if (updateProfilePicture) {
@@ -131,11 +127,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     window.dispatchEvent(new Event("authUpdate"));
   };
 
-  // دالة البحث
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
-  };
-
+  // Handle search functionality
   const filteredSuggestions = searchQuery.trim()
     ? products
         .filter((p) =>
@@ -158,6 +150,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     }
   };
 
+  // Handle user logout
   const handleLogout = () => {
     logout();
     window.dispatchEvent(new Event("authUpdate"));
@@ -168,22 +161,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     }, 100);
   };
 
-  const handleBackdropClick = (e) => {
-    if (e.target.id === "offcanvasBackdrop") {
-      setShowOffcanvas(false);
-    }
-  };
-
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
-    setShowImageUpload(false);
-  };
-
-  const toggleImageUpload = () => {
-    setShowImageUpload(!showImageUpload);
-  };
-
-  // عنصر صورة البروفايل أو الأيقونة
+  // Profile icon component
   const ProfileIconElement = ({ size = "40px", showBorder = false }) => (
     <div
       className="profile-icon-container"
@@ -201,7 +179,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
         overflow: "hidden",
         flexShrink: 0,
       }}
-      onClick={toggleUserMenu}
+      onClick={() => setShowUserMenu(!showUserMenu)}
     >
       {profileImage ? (
         <img
@@ -236,26 +214,22 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
 
   return (
     <>
-      {/* ========== تصميم للشاشات الصغيرة (Mobile) ========== */}
+      {/* Mobile Design */}
       {isMobile ? (
         <nav className="navbar bg-body-tertiary fixed-top">
           <div className="container-fluid">
-            {/* اللوجو */}
-            <Link
-              to="/"
-              className="navbar-brand"
-              onClick={() => setShowOffcanvas(false)}
-            >
+            {/* Logo */}
+            <Link to="/" className="navbar-brand">
               <img
                 src="/logo-ek.png"
                 alt="logo"
-                style={{ width: "80px", height: "auto" }}
+                style={{ width: "16vw", height: "auto" }}
               />
             </Link>
 
-            {/* مجموعة الأزرار على اليمين */}
+            {/* Right Side Actions */}
             <div className="d-flex align-items-center gap-3">
-              {/* حقل البحث */}
+              {/* Search Field */}
               <form
                 onSubmit={handleSearchSubmit}
                 style={{ position: "relative" }}
@@ -264,11 +238,10 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
-                  onChange={handleSearchChange}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="form-control form-control-sm"
                   style={{ width: "27vw", borderRadius: "20px" }}
                 />
-
                 {filteredSuggestions.length > 0 && (
                   <ul
                     className="list-group position-absolute w-100 mt-1"
@@ -288,18 +261,14 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                 )}
               </form>
 
-              {/* عربة التسوق */}
+              {/* Shopping Cart */}
               <div
-                style={{
-                  position: "relative",
-                  display: "inline-block", // أضف هذا
-                }}
-                className="cart hover-container" // أضف hover-container هنا
+                style={{ position: "relative", display: "inline-block" }}
+                className="cart hover-container"
               >
                 <Link
                   to="/cart"
                   className="btn btn-link p-0 cart-link"
-                  onClick={() => setShowOffcanvas(false)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -309,7 +278,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     borderRadius: "50%",
                     backgroundColor: "transparent",
                     textDecoration: "none",
-                    transition: "all 0.3s ease", // أضف transition هنا
+                    transition: "all 0.3s ease",
                   }}
                 >
                   <svg
@@ -318,15 +287,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     height="20"
                     fill="currentColor"
                     viewBox="0 0 16 16"
-                    style={{
-                      color: "#0d6efd",
-                      transition: "all 0.3s ease", // أضف transition للـ SVG
-                    }}
+                    style={{ color: "#0d6efd", transition: "all 0.3s ease" }}
                   >
                     <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2" />
                   </svg>
                 </Link>
-
                 {cartCount > 0 && (
                   <span
                     style={{
@@ -345,7 +310,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      transition: "all 0.3s ease", // أضف transition للـ counter
+                      transition: "all 0.3s ease",
                     }}
                     className="cart-counter"
                   >
@@ -354,13 +319,13 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                 )}
               </div>
 
-              {/* زر القائمة (Hamburger) */}
+              {/* Hamburger Menu */}
               <button
                 className="navbar-toggler"
                 type="button"
                 onClick={() => setShowOffcanvas(true)}
                 aria-label="Toggle navigation"
-                style={{ padding: "4px 8px" }}
+                style={{ padding: "0.5vh 0.9vw" }}
               >
                 <span className="navbar-toggler-icon"></span>
               </button>
@@ -369,7 +334,6 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             {/* Offcanvas Menu */}
             {showOffcanvas && (
               <>
-                {/* Backdrop */}
                 <div
                   id="offcanvasBackdrop"
                   className="offcanvas-backdrop show"
@@ -382,13 +346,10 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     backgroundColor: "rgba(0, 0, 0, 0.5)",
                     zIndex: 1040,
                   }}
-                  onClick={handleBackdropClick}
+                  onClick={() => setShowOffcanvas(false)}
                 />
-
-                {/* Offcanvas Panel */}
                 <div
                   className="offcanvas offcanvas-end show"
-                  tabIndex="-1"
                   style={{
                     position: "fixed",
                     top: 0,
@@ -397,12 +358,9 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     height: "100%",
                     backgroundColor: "white",
                     zIndex: 1050,
-                    display: "block",
-                    visibility: "visible",
-                    transform: "translateX(0)",
-                    transition: "transform 0.3s ease-in-out",
                   }}
                 >
+                  {/* Offcanvas Content */}
                   <div
                     className="offcanvas-header"
                     style={{ borderBottom: "1px solid #dee2e6" }}
@@ -417,8 +375,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                       type="button"
                       className="btn-close"
                       onClick={() => setShowOffcanvas(false)}
-                      aria-label="Close"
-                    ></button>
+                    />
                   </div>
                   <div
                     className="offcanvas-body"
@@ -428,7 +385,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                       padding: "0",
                     }}
                   >
-                    {/* روابط التنقل داخل Offcanvas */}
+                    {/* Navigation Links */}
                     <ul className="navbar-nav flex-grow-1 header-nav-links">
                       <li className="nav-item">
                         <NavLink
@@ -480,10 +437,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                       </li>
                     </ul>
 
-                    {/* قسم تسجيل الدخول داخل Offcanvas */}
+                    {/* User Section */}
                     <div className="p-3 border-top mt-3">
                       {isLoggedIn ? (
                         <div className="user-section">
+                          {/* User Info */}
                           <div className="d-flex align-items-center mb-3">
                             <div className="position-relative">
                               <ProfileIconElement
@@ -492,10 +450,9 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                               />
                               <button
                                 className="btn-change-image-offcanvas"
-                                onClick={() => {
-                                  setShowImageUpload(!showImageUpload);
-                                  setShowUserMenu(false);
-                                }}
+                                onClick={() =>
+                                  setShowImageUpload(!showImageUpload)
+                                }
                                 title="Change profile picture"
                                 style={{
                                   position: "absolute",
@@ -526,7 +483,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                               </button>
                             </div>
                             <div className="ms-3">
-                              <h6 className="mb-0 fw-bold">
+                              <h6 className="mb-0 fw-bold name">
                                 {currentUser?.name || "User"}
                               </h6>
                               <small className="text-muted">
@@ -535,7 +492,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             </div>
                           </div>
 
-                          {/* خيارات تغيير الصورة داخل Offcanvas */}
+                          {/* Image Upload Options */}
                           {showImageUpload && (
                             <div className="image-upload-options-offcanvas mt-3 p-3 border rounded bg-light">
                               <h6 className="mb-2 text-center">
@@ -551,10 +508,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                               <div className="d-flex flex-column gap-2">
                                 <button
                                   className="btn btn-sm btn-outline-primary w-100"
-                                  onClick={() => {
-                                    fileInputRef.current.click();
-                                    setShowImageUpload(false);
-                                  }}
+                                  onClick={() => fileInputRef.current.click()}
                                   disabled={uploading}
                                 >
                                   {uploading ? (
@@ -569,10 +523,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                 {profileImage && (
                                   <button
                                     className="btn btn-sm btn-outline-danger w-100"
-                                    onClick={() => {
-                                      removeProfileImage();
-                                      setShowImageUpload(false);
-                                    }}
+                                    onClick={removeProfileImage}
                                     disabled={uploading}
                                   >
                                     Remove Current Photo
@@ -591,6 +542,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             </div>
                           )}
 
+                          {/* Logout Button */}
                           <div className="mt-3">
                             <button
                               onClick={handleLogout}
@@ -612,7 +564,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                   fillRule="evenodd"
                                   d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"
                                 />
-                              </svg>
+                              </svg>{" "}
                               Logout
                             </button>
                           </div>
@@ -639,7 +591,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                               fillRule="evenodd"
                               d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"
                             />
-                          </svg>
+                          </svg>{" "}
                           Login / Sign Up
                         </Link>
                       )}
@@ -651,19 +603,19 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
           </div>
         </nav>
       ) : (
-        /* ========== تصميم للشاشات المتوسطة والكبيرة ========== */
+        /* Desktop Design */
         <header className="px-2 px-sm-3 px-md-4 shadow-md">
           <div className="d-flex align-items-center justify-content-between py-3">
-            {/* رابط اللوجو */}
+            {/* Logo */}
             <Link to="/" className="me-5">
               <img
                 src="/logo-ek.png"
                 alt="logo"
-                style={{ width: "80px", height: "auto" }}
+                style={{ width: "15vw", height: "auto" }}
               />
             </Link>
 
-            {/* روابط التنقل */}
+            {/* Navigation Links */}
             <nav className="d-flex align-items-center nav-links header-nav-links">
               <NavLink
                 to="/shop"
@@ -678,7 +630,6 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               >
                 Shop
               </NavLink>
-
               <NavLink
                 to="/about"
                 className={({ isActive }) =>
@@ -688,11 +639,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                   textDecoration: "none",
                   color: "#495057",
                   fontWeight: "500",
+                  whiteSpace: "nowrap",
                 }}
               >
                 About Us
               </NavLink>
-
               <NavLink
                 to="/contact"
                 className={({ isActive }) =>
@@ -708,7 +659,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               </NavLink>
             </nav>
 
-            {/* حقل البحث */}
+            {/* Search Field */}
             <div
               className="flex-grow-1 mx-3 searching"
               style={{ maxWidth: "35vw" }}
@@ -721,7 +672,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
-                  onChange={handleSearchChange}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="form-control"
                   style={{
                     width: "80%",
@@ -729,7 +680,6 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     border: "1px solid #ced4da",
                   }}
                 />
-
                 {filteredSuggestions.length > 0 && (
                   <ul
                     className="list-group position-absolute w-100 mt-1"
@@ -750,20 +700,16 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               </form>
             </div>
 
-            {/* عناصر الأكشن - عربة التسوق والبروفايل */}
+            {/* Cart and Profile */}
             <div className="d-flex align-items-center gap-3">
-              {/* عربة التسوق */}
+              {/* Shopping Cart */}
               <div
-                style={{
-                  position: "relative",
-                  display: "inline-block", // أضف هذا
-                }}
-                className="cart hover-container" // أضف hover-container هنا
+                style={{ position: "relative", display: "inline-block" }}
+                className="cart hover-container"
               >
                 <Link
                   to="/cart"
                   className="btn btn-link p-0 cart-link"
-                  onClick={() => setShowOffcanvas(false)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -773,7 +719,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     borderRadius: "50%",
                     backgroundColor: "transparent",
                     textDecoration: "none",
-                    transition: "all 0.3s ease", // أضف transition هنا
+                    transition: "all 0.3s ease",
                   }}
                 >
                   <svg
@@ -782,17 +728,14 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     height="20"
                     fill="currentColor"
                     viewBox="0 0 16 16"
-                    style={{
-                      color: "#0d6efd",
-                      transition: "all 0.3s ease", // أضف transition للـ SVG
-                    }}
+                    style={{ color: "#0d6efd", transition: "all 0.3s ease" }}
                   >
                     <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2" />
                   </svg>
                 </Link>
-
                 {cartCount > 0 && (
                   <span
+                    className="cart-counter"
                     style={{
                       position: "absolute",
                       top: "-5px",
@@ -809,20 +752,19 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      transition: "all 0.3s ease", // أضف transition للـ counter
+                      transition: "all 0.3s ease",
                     }}
-                    className="cart-counter"
                   >
                     {cartCount}
                   </span>
                 )}
               </div>
 
-              {/* أيقونة المستخدم مع القائمة المنسدلة */}
+              {/* User Profile Dropdown */}
               <div className="position-relative" ref={userMenuRef}>
                 <button
                   className="btn btn-link p-0"
-                  onClick={toggleUserMenu}
+                  onClick={() => setShowUserMenu(!showUserMenu)}
                   style={{
                     border: "none",
                     background: "transparent",
@@ -832,7 +774,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                   <ProfileIconElement size="44px" showBorder={false} />
                 </button>
 
-                {/* القائمة المنسدلة */}
+                {/* Dropdown Menu */}
                 {showUserMenu && (
                   <div
                     className="position-absolute top-100 end-0 mt-2"
@@ -848,6 +790,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     <div>
                       {isLoggedIn ? (
                         <>
+                          {/* User Info */}
                           <div className="p-3 border-bottom">
                             <div className="d-flex align-items-center">
                               <div className="position-relative me-3">
@@ -857,7 +800,9 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                 />
                                 <button
                                   className="btn-change-image"
-                                  onClick={toggleImageUpload}
+                                  onClick={() =>
+                                    setShowImageUpload(!showImageUpload)
+                                  }
                                   title="Change profile picture"
                                   style={{
                                     position: "absolute",
@@ -896,6 +841,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                               </div>
                             </div>
 
+                            {/* Image Upload Options */}
                             {showImageUpload && (
                               <div className="mt-3 p-3 border rounded">
                                 <h6 className="mb-2">Change Profile Picture</h6>
@@ -931,6 +877,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             )}
                           </div>
 
+                          {/* Logout Button */}
                           <div className="p-2">
                             <button
                               onClick={handleLogout}
@@ -952,7 +899,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                   fillRule="evenodd"
                                   d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"
                                 />
-                              </svg>
+                              </svg>{" "}
                               Logout
                             </button>
                           </div>
@@ -980,7 +927,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                 fillRule="evenodd"
                                 d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"
                               />
-                            </svg>
+                            </svg>{" "}
                             Login / Sign Up
                           </Link>
                         </div>

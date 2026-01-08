@@ -445,7 +445,7 @@ export default function ProductDetails({
   };
 
   return (
-    <div className="container details-container py-5" dir="rtl">
+    <div className="container details-container" dir="rtl">
       {/* شريط التنقل */}
       <nav aria-label="breadcrumb" className="mb-4">
         <ol className="breadcrumb">
@@ -712,7 +712,7 @@ export default function ProductDetails({
         {/* قسم تفاصيل المنتج */}
         <div className="col-lg-6">
           {/* العنوان والمعلومات */}
-          <div className="d-flex justify-content-between align-items-start mb-3">
+          <div className="d-flex justify-content-between align-items-start mb-3 info-detai">
             <h1 className="product-title h2 mb-0" style={{ maxWidth: "80%" }}>
               {product.title}
             </h1>
@@ -743,7 +743,7 @@ export default function ProductDetails({
 
           {/* التقييم والسعر */}
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="rating-section d-flex align-items-center">
+            <div className="rating-section d-flex align-items-center evaluation">
               {/* ⭐️ نظام النجوم التفاعلي ⭐️ */}
               <div className="stars-icons d-flex">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -793,7 +793,7 @@ export default function ProductDetails({
               </button>
             </div>
 
-            <div className="d-flex align-items-center gap-2">
+            <div className="align-items-center gap-2 code">
               <span className="text-muted small">الكود:</span>
               <span className="badge bg-light text-dark border">
                 #{product.id}

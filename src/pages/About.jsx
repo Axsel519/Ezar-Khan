@@ -24,9 +24,15 @@ export default function About() {
             <div className="col-lg-6">
               <div className="about-hero-image">
                 <div className="image-grid">
-                  <div className="grid-item kitchen-tools"></div>
-                  <div className="grid-item home-organization"></div>
-                  <div className="grid-item quality-products"></div>
+                  <div className="grid-item kitchen-tools">
+                    <img src="../../public/phoabout1.jpg" alt="" />
+                  </div>
+                  <div className="grid-item home-organization">
+                    <img src="../../public/phoabout3.jpg" alt="" />
+                  </div>
+                  <div className="grid-item quality-products">
+                    <img src="../../public/phoabout2.jpg" alt="" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -43,9 +49,6 @@ export default function About() {
           <div className="row">
             <div className="col-lg-6 mb-5 mb-lg-0">
               <div className="vision-card p-4 p-lg-5 rounded-4 shadow-sm h-100">
-                <div className="icon-wrapper mb-4">
-                  <i className="bi bi-eye-fill fs-1 text-primary"></i>
-                </div>
                 <h2 className="h3 fw-bold mb-4">رؤيتنا</h2>
                 <p className="mb-4">
                   أن نكون الاختيار الأول لكل أسرة تبحث عن أدوات منزلية موثوقة
@@ -61,9 +64,6 @@ export default function About() {
 
             <div className="col-lg-6">
               <div className="mission-card p-4 p-lg-5 rounded-4 shadow-sm h-100">
-                <div className="icon-wrapper mb-4">
-                  <i className="bi bi-bullseye fs-1 text-success"></i>
-                </div>
                 <h2 className="h3 fw-bold mb-4">رسالتنا</h2>
                 <p className="mb-4">
                   تقديم أدوات منزلية عملية، موثوقة، وسهلة الاستخدام، تم اختيارها
@@ -152,9 +152,6 @@ export default function About() {
           <div className="row g-4">
             <div className="col-lg-4">
               <div className="feature-card text-center p-4">
-                <div className="feature-icon mb-3">
-                  <i className="bi bi-stars fs-1 text-warning"></i>
-                </div>
                 <h4 className="h5 fw-bold mb-3">جودة مختارة بعناية</h4>
                 <p className="text-muted">
                   نتعامل مع موردين موثوقين ونخضع المنتجات لمعايير اختيار دقيقة
@@ -163,9 +160,6 @@ export default function About() {
             </div>
             <div className="col-lg-4">
               <div className="feature-card text-center p-4">
-                <div className="feature-icon mb-3">
-                  <i className="bi bi-briefcase fs-1 text-primary"></i>
-                </div>
                 <h4 className="h5 fw-bold mb-3">منتجات عملية</h4>
                 <p className="text-muted">
                   حلول حقيقية تناسب الاستخدام اليومي وتوفر الوقت والجهد
@@ -174,9 +168,6 @@ export default function About() {
             </div>
             <div className="col-lg-4 abou-pag">
               <div className="feature-card text-center p-4">
-                <div className="feature-icon mb-3">
-                  <i className="bi bi-tag fs-1 text-success"></i>
-                </div>
                 <h4 className="h5 fw-bold mb-3">أسعار تنافسية</h4>
                 <p className="text-muted">
                   عروض تناسب الجميع مع ضمان القيمة الحقيقية مقابل السعر
@@ -185,9 +176,6 @@ export default function About() {
             </div>
             <div className="col-lg-4">
               <div className="feature-card text-center p-4">
-                <div className="feature-icon mb-3">
-                  <i className="bi bi-headset fs-1 text-info"></i>
-                </div>
                 <h4 className="h5 fw-bold mb-3">خدمة عملاء موثوقة</h4>
                 <p className="text-muted">
                   فريق دعم متواصل يهتم بكل تفاصيل رضاكم وتجربتكم
@@ -196,9 +184,6 @@ export default function About() {
             </div>
             <div className="col-lg-4">
               <div className="feature-card text-center p-4">
-                <div className="feature-icon mb-3">
-                  <i className="bi bi-cart-check fs-1 text-danger"></i>
-                </div>
                 <h4 className="h5 fw-bold mb-3">تجربة تسوق سهلة</h4>
                 <p className="text-muted">
                   واجهة بديهية وتصفية ذكية للعثور على ما تريد بسرعة
@@ -207,9 +192,6 @@ export default function About() {
             </div>
             <div className="col-lg-4">
               <div className="feature-card text-center p-4">
-                <div className="feature-icon mb-3">
-                  <i className="bi bi-shield-lock fs-1 text-success"></i>
-                </div>
                 <h4 className="h5 fw-bold mb-3">شراء آمن</h4>
                 <p className="text-muted">
                   معاملات مشفرة وضمان استرجاع وسياسات شفافة

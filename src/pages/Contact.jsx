@@ -121,7 +121,7 @@ export default function Contact() {
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
+                    <form className="contact-form" onSubmit={handleSubmit}>
                       <div className="row">
                         <div className="col-md-6 mb-4">
                           <label
