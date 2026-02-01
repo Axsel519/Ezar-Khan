@@ -174,13 +174,13 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
               <div className="cart-items-list">
                 {cartItems.map((item) => (
                   <div
-                    key={item.product.id}
+                    key={item.product.id || item.product._id}
                     className="cart-item-card cart-item-row"
                   >
                     {/* Product Image */}
                     <div className="cart-item-image">
                       <Link
-                        to={`/shop/${item.product.id}`}
+                        to={`/shop/${item.product.id || item.product._id}`}
                         className="product-image-link"
                       >
                         <div className="image-wrapper">
@@ -189,12 +189,13 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                               item.product.images?.[0] ||
                               "/images/placeholder.jpg"
                             }
-                            alt={item.product.title}
+                            alt={item.product.name || item.product.title}
                             className="product-image"
                             onError={(e) => {
                               e.target.onerror = null;
+                              const productName = item.product.name || item.product.title || 'Product';
                               e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f8f9fa'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%236c757d' text-anchor='middle' dy='.3em'%3E${encodeURIComponent(
-                                item.product.title.substring(0, 15)
+                                productName.substring(0, 15)
                               )}%3C/text%3E%3C/svg%3E`;
                             }}
                           />
@@ -216,7 +217,7 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
                         }}
                         style={{ cursor: "pointer" }}
                         title="Remove item"
-                        aria-label={`Remove ${item.product.title} from cart`}
+                        aria-label={`Remove ${item.product.name || item.product.title} from cart`}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -233,7 +234,7 @@ export default function Cart({ cartItems = [], onUpdateCart }) {
 
                       {/* Product Name */}
                       <div className="cart-item-name-section">
-                        <h3 className="product-name">{item.product.title}</h3>
+                        <h3 className="product-name">{item.product.name || item.product.title}</h3>
 
                         {/* Product Description */}
                         {item.product.description && (

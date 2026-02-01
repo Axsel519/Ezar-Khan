@@ -435,6 +435,21 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                           Contact
                         </NavLink>
                       </li>
+                      {isLoggedIn && currentUser?.role?.toUpperCase() === 'ADMIN' && (
+                        <li className="nav-item">
+                          <NavLink
+                            to="/admin"
+                            className={({ isActive }) =>
+                              `nav-link ${isActive ? "active" : ""}`
+                            }
+                            onClick={() => setShowOffcanvas(false)}
+                            style={{ padding: "12px 20px", color: "#dc3545", fontWeight: "600" }}
+                          >
+                            <i className="bi bi-speedometer2 me-2"></i>
+                            Admin Dashboard
+                          </NavLink>
+                        </li>
+                      )}
                     </ul>
 
                     {/* User Section */}
@@ -657,6 +672,22 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               >
                 Contact
               </NavLink>
+              {isLoggedIn && currentUser?.role?.toUpperCase() === 'ADMIN' && (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `nav-link ${isActive ? "active" : ""}`
+                  }
+                  style={{
+                    textDecoration: "none",
+                    color: "#dc3545",
+                    fontWeight: "600",
+                  }}
+                >
+                  <i className="bi bi-speedometer2 me-1"></i>
+                  Admin
+                </NavLink>
+              )}
             </nav>
 
             {/* Search Field */}

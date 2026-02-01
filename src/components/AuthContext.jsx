@@ -7,6 +7,7 @@
 // Manages user authentication with localStorage persistence
 
 import React, { createContext, useState, useContext, useEffect } from "react";
+import { authAPI } from "../services/api";
 
 // Create authentication context
 const AuthContext = createContext();
@@ -81,11 +82,14 @@ export const AuthProvider = ({ children }) => {
   // ========== AUTHENTICATION METHODS ==========
   /**
    * Logs in a user and persists data to localStorage
-   * @param {Object} userData - User information
+   * @param {Object} userData - User information with token
    */
-  const login = (userData) => {
+  const login = (userData, token) => {
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("currentUser", JSON.stringify(userData));
+    if (token) {
+      localStorage.setItem("authToken", token);
+    }
 
     setAuthState({ isLoggedIn: true, currentUser: userData, isLoading: false });
     window.dispatchEvent(new Event("authStateChanged"));
@@ -94,9 +98,16 @@ export const AuthProvider = ({ children }) => {
   /**
    * Logs out the current user and clears localStorage
    */
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("currentUser");
+    localStorage.removeItem("authToken");
 
     setAuthState({ isLoggedIn: false, currentUser: null, isLoading: false });
     window.dispatchEvent(new Event("authStateChanged"));

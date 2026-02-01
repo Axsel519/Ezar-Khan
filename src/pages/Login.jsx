@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
+import { authAPI } from "../services/api";
 
 /**
  * Login Component - تصميم جديد وجميل
@@ -91,64 +92,59 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // محاكاة اتصال API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call backend API
+      const response = await authAPI.login({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      // استرجاع بيانات المستخدم من localStorage
-      const savedUser = JSON.parse(localStorage.getItem("userData"));
+      console.log('Login response:', response); // Debug log
 
-      // منطق المصادقة
-      if (!savedUser) {
-        setErrors({ general: "لم يتم العثور على حساب. الرجاء التسجيل أولاً." });
-        return;
+      // تحضير بيانات المستخدم
+      const userData = {
+        id: response.user._id || response.user.id,
+        email: response.user.email,
+        name: response.user.firstName || response.user.name || response.user.email.split("@")[0],
+        role: response.user.role?.toUpperCase() || 'CUSTOMER', // Convert to uppercase
+        profileImage: response.user.profileImage || null,
+      };
+
+      // Get token (handle both 'token' and 'access_token')
+      const token = response.token || response.access_token;
+
+      // تحديث سياق المصادقة
+      login(userData, token);
+
+      // إذا اختار تذكرني
+      if (rememberMe) {
+        localStorage.setItem("rememberMe", "true");
       }
 
-      if (
-        formData.email === savedUser.email &&
-        formData.password === savedUser.password
-      ) {
-        // تحضير بيانات المستخدم
-        const userData = {
-          email: savedUser.email,
-          name: savedUser.name || savedUser.email.split("@")[0],
-          profileImage: savedUser.profileImage || null,
-        };
+      // إرسال أحداث للتحديث في جميع أنحاء التطبيق
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new Event("authUpdate"));
 
-        // حفظ في localStorage
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("currentUser", JSON.stringify(userData));
+      // رسالة نجاح
+      console.log("تم تسجيل الدخول بنجاح!");
 
-        // إذا اختار تذكرني
-        if (rememberMe) {
-          localStorage.setItem("rememberMe", "true");
-        }
-
-        // تحديث سياق المصادقة
-        login(userData);
-
-        // إرسال أحداث للتحديث في جميع أنحاء التطبيق
-        window.dispatchEvent(new Event("storage"));
-        window.dispatchEvent(new Event("authUpdate"));
-
-        // رسالة نجاح
-        console.log("تم تسجيل الدخول بنجاح!");
-
-        // إعادة التوجيه إلى الصفحة الرئيسية
-        setTimeout(() => {
-          navigate("/", { replace: true });
-          window.location.reload();
-        }, 500);
-      } else {
-        setErrors({
-          general:
-            "البريد الإلكتروني أو كلمة المرور غير صحيحة. الرجاء المحاولة مرة أخرى.",
-        });
-      }
+      // إعادة التوجيه إلى الصفحة الرئيسية
+      setTimeout(() => {
+        navigate("/", { replace: true });
+      }, 500);
     } catch (error) {
       console.error("خطأ في تسجيل الدخول:", error);
-      setErrors({
-        general: "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى لاحقاً.",
-      });
+      
+      if (error.response?.status === 401) {
+        setErrors({
+          general: "البريد الإلكتروني أو كلمة المرور غير صحيحة. الرجاء المحاولة مرة أخرى.",
+        });
+      } else if (error.response?.status === 404) {
+        setErrors({ general: "لم يتم العثور على حساب. الرجاء التسجيل أولاً." });
+      } else {
+        setErrors({
+          general: error.response?.data?.message || "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى لاحقاً.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { products } from "../data/products";
+import { productsAPI, commentsAPI } from "../services/api";
 import "../style.css";
 
 export default function ProductDetails({
@@ -13,8 +13,10 @@ export default function ProductDetails({
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // البحث عن المنتج مع التحقق من وجوده
-  const product = products.find((p) => p.id === id);
+  // State for product
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // ⭐️ متغيرات التقييم والتعليقات ⭐️
   const [rating, setRating] = useState(0);
@@ -30,13 +32,46 @@ export default function ProductDetails({
   const currentQuantity = getProductQuantity ? getProductQuantity(id) : 0;
 
   const [quantity, setQuantity] = useState(currentQuantity);
-  const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [zoomImage, setZoomImage] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [loadingRelated, setLoadingRelated] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
+
+  // Fetch product from backend
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const data = await productsAPI.getById(id);
+        setProduct(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError("Failed to load product");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  // Fetch comments from backend
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!id) return;
+      try {
+        const data = await commentsAPI.getByProduct(id);
+        setComments(data || []);
+      } catch (err) {
+        console.error("Error fetching comments:", err);
+      }
+    };
+
+    fetchComments();
+  }, [id]);
 
   // ✅ دالة التعامل مع الإعجاب بالتعليق
   const handleLikeComment = (commentId) => {
@@ -56,36 +91,35 @@ export default function ProductDetails({
   };
 
   // ✅ دالة إضافة تعليق جديد
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     const commentText = document.getElementById("commentText")?.value;
     const userName =
       document.getElementById("commentUserName")?.value || "مجهول";
 
     if (commentText) {
-      const newComment = {
-        id: Date.now(),
-        userName,
-        comment: commentText,
-        date: new Date().toLocaleDateString("ar-SA"),
-        time: new Date().toLocaleTimeString("ar-SA", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        likes: 0,
-      };
+      try {
+        const newComment = await commentsAPI.create({
+          productId: id,
+          text: commentText,
+          rating: rating || 5,
+        });
 
-      setComments([newComment, ...comments]);
+        setComments([newComment, ...comments]);
 
-      // مسح الحقول
-      if (document.getElementById("commentText")) {
-        document.getElementById("commentText").value = "";
+        // مسح الحقول
+        if (document.getElementById("commentText")) {
+          document.getElementById("commentText").value = "";
+        }
+        if (document.getElementById("commentUserName")) {
+          document.getElementById("commentUserName").value = "";
+        }
+
+        setShowCommentForm(false);
+        showToast && showToast("تم إضافة التعليق بنجاح", "success");
+      } catch (error) {
+        console.error("Error adding comment:", error);
+        showToast && showToast("فشل في إضافة التعليق", "error");
       }
-      if (document.getElementById("commentUserName")) {
-        document.getElementById("commentUserName").value = "";
-      }
-
-      setShowCommentForm(false);
-      showToast && showToast("تم إضافة التعليق بنجاح", "success");
     } else {
       showToast && showToast("الرجاء كتابة تعليق", "warning");
     }
@@ -120,14 +154,38 @@ export default function ProductDetails({
 
   // تحديث المنتجات المقترحة عند تغيير المنتج
   useEffect(() => {
-    if (product) {
-      // البحث عن منتجات من نفس الفئة (ماعدا المنتج الحالي)
-      const related = products.filter(
-        (p) => p.category === product.category && p.id !== product.id
-      );
-      setRelatedProducts(related);
-      setLoadingRelated(false);
-    }
+    const fetchRelatedProducts = async () => {
+      if (!product || !product.category) return;
+      
+      try {
+        setLoadingRelated(true);
+        // Fetch all products and filter by category
+        const data = await productsAPI.getAll();
+        
+        let productsArray = [];
+        if (Array.isArray(data)) {
+          productsArray = data;
+        } else if (data && Array.isArray(data.products)) {
+          productsArray = data.products;
+        } else if (data && Array.isArray(data.data)) {
+          productsArray = data.data;
+        }
+        
+        // Filter products from same category (excluding current product)
+        const related = productsArray.filter(
+          (p) => p.category === product.category && (p.id || p._id) !== (product.id || product._id)
+        );
+        
+        setRelatedProducts(related.slice(0, 4)); // Limit to 4 related products
+      } catch (error) {
+        console.error("Error fetching related products:", error);
+        setRelatedProducts([]);
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+
+    fetchRelatedProducts();
   }, [product]);
 
   // ✅ دالة لتحميل بيانات التقييمات والمراجعات للمنتج الحالي
@@ -352,7 +410,6 @@ export default function ProductDetails({
 
   // للتصحيح: إضافة console.log للتحقق من البيانات
   useEffect(() => {
-    console.log("📊 منتجات المتجر:", products);
     console.log("🔎 المنتج الحالي (id):", id);
     console.log("📦 المنتج الموجود:", product);
     console.log("🔄 المنتجات المقترحة:", relatedProducts);
@@ -588,7 +645,6 @@ export default function ProductDetails({
                           height: "100%",
                           padding: "1rem",
                           opacity: index === activeIndex ? 1 : 0,
-                          transition: "opacity 0.5s ease",
                           zIndex: index === activeIndex ? 2 : 1,
                           transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
                           transform:

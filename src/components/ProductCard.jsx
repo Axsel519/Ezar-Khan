@@ -34,7 +34,7 @@ export default function ProductCard({ product, onAdd }) {
     >
       {/* رابط المنتج للصفحة التفصيلية */}
       <Link
-        to={`/shop/${product.id}`}
+        to={`/shop/${product.id || product._id}`}
         className="text-decoration-none text-dark h-100 d-block"
       >
         {/* حاوية صورة المنتج */}
@@ -44,15 +44,16 @@ export default function ProductCard({ product, onAdd }) {
               imageSource ||
               // صورة افتراضية في حالة عدم وجود صورة
               `https://placehold.co/400x300/e9ecef/495057?text=${encodeURIComponent(
-                product.title.split(" ")[0]
+                (product.name || product.title || 'Product').split(" ")[0]
               )}`
             }
             className="card-img-top object-fit-cover h-100 w-100"
-            alt={product.title}
+            alt={product.name || product.title}
             onError={(e) => {
               e.target.onerror = null;
+              const productName = product.name || product.title || 'Product';
               e.target.src = `https://placehold.co/400x300/e9ecef/495057?text=${encodeURIComponent(
-                product.title.split(" ")[0]
+                productName.split(" ")[0]
               )}`;
             }}
             style={{ objectFit: "cover" }}
@@ -77,9 +78,9 @@ export default function ProductCard({ product, onAdd }) {
               minHeight: "2.4em",
               lineHeight: "1.2",
             }}
-            title={product.title}
+            title={product.name || product.title}
           >
-            {product.title}
+            {product.name || product.title}
           </h6>
 
           {/* وصف المنتج - محدود بسطر واحد */}

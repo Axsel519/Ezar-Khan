@@ -2,64 +2,81 @@
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { products } from "../data/products";
+import { productsAPI } from "../services/api";
 
 export default function Shop({ onAdd, getQuantity, searchQuery }) {
   const [category, setCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("default");
-  const [filteredProducts, setFilteredProducts] = useState(products);
-  const [loading, setLoading] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   // استخدام searchQuery من الـ Header
   const q = searchQuery?.trim() || "";
 
-  // إنشاء قائمة الفئات
-  const categories = [
-    "All Products",
-    ...Array.from(new Set(products.map((p) => p.category))),
-  ];
-
-  // فلترة وترتيب المنتجات
+  // Fetch products from backend
   useEffect(() => {
-    setLoading(true);
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await productsAPI.getAll({
+          page: currentPage,
+          limit: itemsPerPage,
+          search: q || undefined,
+          category: category !== "All Products" ? category : undefined,
+          sortBy: sortBy !== "default" ? sortBy : undefined
+        });
+        
+        // Handle different response structures
+        let productsArray = [];
+        let total = 0;
+        
+        if (data.products && Array.isArray(data.products)) {
+          productsArray = data.products;
+          total = data.total || data.totalProducts || productsArray.length;
+        } else if (data.data && Array.isArray(data.data)) {
+          productsArray = data.data;
+          total = data.total || data.totalProducts || productsArray.length;
+        } else if (Array.isArray(data)) {
+          productsArray = data;
+          total = productsArray.length;
+        }
+        
+        console.log('Fetched products:', productsArray);
+        setProducts(productsArray);
+        setFilteredProducts(productsArray);
+        setTotalProducts(total);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products from server. Please make sure the backend is running.");
+        setProducts([]);
+        setFilteredProducts([]);
+        setTotalProducts(0);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    let result = [...products];
+    fetchProducts();
+  }, [currentPage, itemsPerPage, q, category, sortBy]);
 
-    // 1. فلترة حسب البحث
-    if (q) {
-      result = result.filter((p) =>
-        p.title.toLowerCase().includes(q.toLowerCase())
-      );
-    }
+  // إنشاء قائمة الفئات
+  const categories = React.useMemo(() => {
+    // For now, use static categories or fetch from backend
+    return ["All Products", "Kitchen Tools", "Utensils", "Appliances", "Storage"];
+  }, []);
 
-    // 2. فلترة حسب الفئة
-    if (category !== "All Products") {
-      result = result.filter((p) => p.category === category);
-    }
-
-    // 3. ترتيب المنتجات
-    switch (sortBy) {
-      case "price-low":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-high":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "name-asc":
-        result.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      case "name-desc":
-        result.sort((a, b) => b.title.localeCompare(a.title));
-        break;
-      default:
-        // الترتيب الافتراضي (أحدث المنتجات أولاً)
-        break;
-    }
-
-    setTimeout(() => {
-      setFilteredProducts(result);
-      setLoading(false);
-    }, 300);
+  // فلترة وترتيب المنتجات - now handled by backend
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [q, category, sortBy]);
 
   // دالة إضافة للسلة مع تأثير
@@ -101,11 +118,11 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
               </p>
               <div className="d-flex gap-3">
                 <div className="stat-box">
-                  <div className="stat-number">{products.length}+</div>
+                  <div className="stat-number">{totalProducts || 0}+</div>
                   <div className="stat-label">Products</div>
                 </div>
                 <div className="stat-box">
-                  <div className="stat-number">{categories.length - 1}</div>
+                  <div className="stat-number">{Math.max(0, categories.length - 1)}</div>
                   <div className="stat-label">Categories</div>
                 </div>
                 <div className="stat-box">
@@ -134,6 +151,16 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
         </div>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="container">
+          <div className="alert alert-danger" role="alert">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            {error}
+          </div>
+        </div>
+      )}
+
       {/* Filters Section */}
       <div className="filters-section mb-5">
         <div className="container">
@@ -145,11 +172,11 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                   <i className="bi bi-search me-2"></i>
                   {q ? (
                     <span>
-                      Showing <strong>{filteredProducts.length}</strong> results
+                      Showing <strong>{filteredProducts?.length || 0}</strong> results
                       for "{q}"
                     </span>
                   ) : (
-                    <span>Browse all {products.length} products</span>
+                    <span>Browse all {totalProducts || 0} products</span>
                   )}
                 </div>
               </div>
@@ -215,12 +242,36 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
       {/* Products Grid */}
       <div className="products-section">
         <div className="container">
-          {loading ? (
+          {loading && products.length === 0 ? (
             <div className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
               <p className="mt-3">Loading products...</p>
+            </div>
+          ) : error && products.length === 0 ? (
+            <div className="empty-state text-center py-5">
+              <i className="bi bi-exclamation-triangle display-1 text-danger mb-4"></i>
+              <h3 className="mb-3">Cannot Connect to Server</h3>
+              <p className="text-muted mb-4">{error}</p>
+              <div className="d-flex gap-3 justify-content-center">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => window.location.reload()}
+                >
+                  <i className="bi bi-arrow-clockwise me-2"></i>
+                  Retry
+                </button>
+                <a
+                  href="http://localhost:3000/health"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline-secondary"
+                >
+                  <i className="bi bi-server me-2"></i>
+                  Check Backend
+                </a>
+              </div>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="empty-state text-center py-5">
@@ -245,16 +296,17 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
             <>
               <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
                 {filteredProducts.map((product) => {
-                  const currentQty = getQuantity(product.id) || 0;
+                  const currentQty = getQuantity(product.id || product._id) || 0;
                   const mainImage =
                     product.images?.[0] || "/images/placeholder.jpg";
+                  const productTitle = product.name || product.title;
 
                   return (
-                    <div key={product.id} className="col">
+                    <div key={product.id || product._id} className="col">
                       <div className="card product-card h-100 shadow-sm border-0 position-relative">
                         {/* Link حول الصورة والتفاصيل فقط */}
                         <Link
-                          to={`/shop/${product.id}`}
+                          to={`/shop/${product.id || product._id}`}
                           className="text-decoration-none text-dark"
                           style={{ display: "contents" }}
                         >
@@ -266,7 +318,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                             <img
                               src={mainImage}
                               className="card-img-top w-100 h-100 object-fit-contain p-3"
-                              alt={product.title}
+                              alt={productTitle}
                               style={{
                                 backgroundColor: "#f8f9fa",
                                 objectFit: "contain",
@@ -274,7 +326,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f8f9fa'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='16' fill='%236c757d' text-anchor='middle' dy='.3em'%3E${encodeURIComponent(
-                                  product.title
+                                  productTitle
                                 )}%3C/text%3E%3C/svg%3E`;
                               }}
                             />
@@ -295,7 +347,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                               className="card-title mb-2"
                               style={{ textAlign: "right", fontSize: "0.9rem" }}
                             >
-                              {product.title}
+                              {productTitle}
                             </h5>
 
                             {/* Product Description - سطر واحد ومحاذاة لليمين فقط */}
@@ -408,9 +460,79 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                 <div className="row align-items-center">
                   <div className="col-md-6">
                     <p className="mb-0 text-muted">
-                      Showing <strong>{filteredProducts.length}</strong> of{" "}
-                      <strong>{products.length}</strong> products
+                      Showing <strong>{((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalProducts)}</strong> of{" "}
+                      <strong>{totalProducts}</strong> products
                     </p>
+                  </div>
+                  <div className="col-md-6">
+                    {/* Pagination Controls */}
+                    {totalProducts > itemsPerPage && (
+                      <nav aria-label="Product pagination">
+                        <ul className="pagination justify-content-md-end justify-content-center mb-0">
+                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => {
+                                setCurrentPage(currentPage - 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              disabled={currentPage === 1}
+                            >
+                              <i className="bi bi-chevron-left"></i> Previous
+                            </button>
+                          </li>
+                          
+                          {/* Page numbers */}
+                          {Array.from({ length: Math.ceil(totalProducts / itemsPerPage) }, (_, i) => i + 1)
+                            .filter(page => {
+                              const totalPages = Math.ceil(totalProducts / itemsPerPage);
+                              // Show first page, last page, current page, and pages around current
+                              return page === 1 || 
+                                     page === totalPages || 
+                                     (page >= currentPage - 1 && page <= currentPage + 1);
+                            })
+                            .map((page, index, array) => {
+                              // Add ellipsis if there's a gap
+                              const prevPage = array[index - 1];
+                              const showEllipsis = prevPage && page - prevPage > 1;
+                              
+                              return (
+                                <React.Fragment key={page}>
+                                  {showEllipsis && (
+                                    <li className="page-item disabled">
+                                      <span className="page-link">...</span>
+                                    </li>
+                                  )}
+                                  <li className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                                    <button 
+                                      className="page-link" 
+                                      onClick={() => {
+                                        setCurrentPage(page);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                      }}
+                                    >
+                                      {page}
+                                    </button>
+                                  </li>
+                                </React.Fragment>
+                              );
+                            })}
+                          
+                          <li className={`page-item ${currentPage === Math.ceil(totalProducts / itemsPerPage) ? 'disabled' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => {
+                                setCurrentPage(currentPage + 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              disabled={currentPage === Math.ceil(totalProducts / itemsPerPage)}
+                            >
+                              Next <i className="bi bi-chevron-right"></i>
+                            </button>
+                          </li>
+                        </ul>
+                      </nav>
+                    )}
                   </div>
                 </div>
               </div>

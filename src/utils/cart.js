@@ -38,7 +38,11 @@ function saveCart(cart) {
  */
 export function updateCart(product, quantity) {
   let cart = loadCart();
-  const productIndex = cart.findIndex((item) => item.product.id === product.id);
+  const productId = product.id || product._id;
+  const productIndex = cart.findIndex((item) => {
+    const itemId = item.product.id || item.product._id;
+    return itemId === productId;
+  });
 
   if (quantity > 0) {
     // Update or add product

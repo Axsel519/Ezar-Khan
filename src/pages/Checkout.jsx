@@ -9,6 +9,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
+import { ordersAPI } from "../services/api";
 
 export default function Checkout({ cartItems = [], onUpdateCart }) {
   const navigate = useNavigate();
@@ -161,11 +162,22 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       setIsProcessing(true);
 
       try {
-        // Simulate payment processing
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Prepare order data for backend
+        const orderData = {
+          items: cartItems.map(item => ({
+            productId: item.product.id || item.product._id,
+            quantity: item.quantity,
+          })),
+          shippingAddress: `${formData.address}, ${formData.city}, ${formData.country}`,
+          phone: formData.phone,
+          paymentMethod: formData.paymentMethod,
+        };
 
-        // Generate order number
-        const orderNumber = `ORD-${Date.now().toString().slice(-8)}`;
+        // Create order via backend API
+        const response = await ordersAPI.create(orderData);
+
+        // Generate order number from response
+        const orderNumber = response.orderNumber || response.id || `ORD-${Date.now().toString().slice(-8)}`;
 
         setFormData((prev) => ({
           ...prev,
@@ -175,8 +187,8 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
 
         setCurrentStep(4);
 
-        // Save order to localStorage
-        const orderData = {
+        // Save order to localStorage for reference
+        const orderDetails = {
           orderNumber,
           items: cartItems,
           customer: {
@@ -193,10 +205,11 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           status: "confirmed",
         };
 
-        localStorage.setItem("lastOrder", JSON.stringify(orderData));
+        localStorage.setItem("lastOrder", JSON.stringify(orderDetails));
       } catch (error) {
+        console.error("Payment error:", error);
         setErrors({
-          payment: "فشل في معالجة الدفع. الرجاء المحاولة مرة أخرى.",
+          payment: error.response?.data?.message || "فشل في معالجة الدفع. الرجاء المحاولة مرة أخرى.",
         });
       } finally {
         setIsProcessing(false);

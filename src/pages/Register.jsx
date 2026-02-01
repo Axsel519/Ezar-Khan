@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { authAPI } from "../services/api";
 
 /**
  * Luxury Register Component
@@ -13,7 +14,8 @@ const LuxuryRegister = () => {
 
   // حالة النموذج
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     address: "",
@@ -47,10 +49,16 @@ const LuxuryRegister = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!form.name.trim()) {
-      newErrors.name = "الاسم الكامل مطلوب";
-    } else if (form.name.trim().length < 3) {
-      newErrors.name = "يجب أن يكون الاسم 3 أحرف على الأقل";
+    if (!form.firstName.trim()) {
+      newErrors.firstName = "الاسم الأول مطلوب";
+    } else if (form.firstName.trim().length < 2) {
+      newErrors.firstName = "يجب أن يكون الاسم حرفين على الأقل";
+    }
+
+    if (!form.lastName.trim()) {
+      newErrors.lastName = "اسم العائلة مطلوب";
+    } else if (form.lastName.trim().length < 2) {
+      newErrors.lastName = "يجب أن يكون الاسم حرفين على الأقل";
     }
 
     if (!form.email.trim()) {
@@ -130,23 +138,31 @@ const LuxuryRegister = () => {
     setIsSubmitting(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const userData = {
-        ...form,
-        createdAt: new Date().toISOString(),
-        profileImage: null,
-      };
-
-      localStorage.setItem("userData", JSON.stringify(userData));
+      // Call backend API
+      const response = await authAPI.register({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        address: form.address,
+      });
 
       setShowSuccessToast(true);
 
       setTimeout(() => {
         navigate("/login");
-      }, 3000);
+      }, 2000);
     } catch (error) {
-      setErrors({ general: "حدث خطأ. يرجى المحاولة مرة أخرى." });
+      console.error("Registration error:", error);
+      
+      if (error.response?.status === 409) {
+        setErrors({ general: "البريد الإلكتروني مستخدم بالفعل. الرجاء استخدام بريد آخر." });
+      } else {
+        setErrors({ 
+          general: error.response?.data?.message || "حدث خطأ. يرجى المحاولة مرة أخرى." 
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -204,28 +220,54 @@ const LuxuryRegister = () => {
               )}
 
               <div className="form-grid">
-                {/* الاسم */}
+                {/* الاسم الأول */}
                 <div className="luxury-form-group">
                   <label className="luxury-label">
                     <i className="bi bi-person-circle"></i>
-                    الاسم الكامل
+                    الاسم الأول
                   </label>
                   <div className="luxury-input-wrapper">
                     <input
                       type="text"
-                      name="name"
-                      value={form.name}
+                      name="firstName"
+                      value={form.firstName}
                       onChange={handleChange}
-                      placeholder="أدخل اسمك الكامل"
-                      className={`luxury-input ${errors.name ? "error" : ""}`}
+                      placeholder="أدخل اسمك الأول"
+                      className={`luxury-input ${errors.firstName ? "error" : ""}`}
                       disabled={isSubmitting}
                     />
                     <i className="bi bi-person luxury-input-icon"></i>
                   </div>
-                  {errors.name && (
+                  {errors.firstName && (
                     <div className="error-message">
                       <i className="bi bi-info-circle"></i>
-                      {errors.name}
+                      {errors.firstName}
+                    </div>
+                  )}
+                </div>
+
+                {/* اسم العائلة */}
+                <div className="luxury-form-group">
+                  <label className="luxury-label">
+                    <i className="bi bi-person-circle"></i>
+                    اسم العائلة
+                  </label>
+                  <div className="luxury-input-wrapper">
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={handleChange}
+                      placeholder="أدخل اسم العائلة"
+                      className={`luxury-input ${errors.lastName ? "error" : ""}`}
+                      disabled={isSubmitting}
+                    />
+                    <i className="bi bi-person luxury-input-icon"></i>
+                  </div>
+                  {errors.lastName && (
+                    <div className="error-message">
+                      <i className="bi bi-info-circle"></i>
+                      {errors.lastName}
                     </div>
                   )}
                 </div>

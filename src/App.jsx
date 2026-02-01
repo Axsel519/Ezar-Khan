@@ -19,6 +19,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
+import AdminDashboard from "./pages/AdminDashboard";
 
 // Layout Components
 import Header from "./components/Header";
@@ -104,15 +105,21 @@ function AppContent() {
     const updatedCart = updateCart(product, quantity);
     setCart(updatedCart);
 
+    const productName = product.name || product.title || 'Product';
+    const productId = product.id || product._id;
+
     // Show appropriate toast message
     if (quantity === 0) {
-      showToast(`تمت إزالة ${product.title} من السلة`, "info");
+      showToast(`تمت إزالة ${productName} من السلة`, "info");
     } else if (quantity > 0) {
-      const existingItem = cart.find((item) => item.product.id === product.id);
+      const existingItem = cart.find((item) => {
+        const itemId = item.product.id || item.product._id;
+        return itemId === productId;
+      });
       if (existingItem) {
-        showToast(`تم تحديث كمية ${product.title} إلى ${quantity}`, "success");
+        showToast(`تم تحديث كمية ${productName} إلى ${quantity}`, "success");
       } else {
-        showToast(`تمت إضافة ${product.title} إلى السلة`, "success");
+        showToast(`تمت إضافة ${productName} إلى السلة`, "success");
       }
     }
   };
@@ -123,7 +130,10 @@ function AppContent() {
    * @returns {number} Quantity in cart
    */
   const getProductQuantity = (productId) => {
-    const item = cart.find((item) => item.product.id === productId);
+    const item = cart.find((item) => {
+      const itemId = item.product.id || item.product._id;
+      return itemId === productId;
+    });
     return item ? item.quantity : 0;
   };
 
@@ -186,6 +196,9 @@ function AppContent() {
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
 
           {/* Protected Routes (require auth) */}
           <Route
