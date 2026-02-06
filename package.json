@@ -15,7 +15,10 @@
     "bootstrap": "^5.3.8",
     "firebase": "^12.6.0",
     "json-server": "^1.0.0-beta.3",
+<<<<<<< HEAD
     "mongoose": "^9.1.5",
+=======
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.14.0"

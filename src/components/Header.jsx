@@ -13,7 +13,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   const [showOffcanvas, setShowOffcanvas] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [profileImage, setProfileImage] = useState(
+<<<<<<< HEAD
     currentUser?.profileImage || null,
+=======
+    currentUser?.profileImage || null
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
   );
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -128,11 +132,18 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   };
 
   // Handle search functionality
+<<<<<<< HEAD
   const filteredSuggestions =
     searchQuery.trim() ?
       products
         .filter((p) =>
           p.title.toLowerCase().includes(searchQuery.toLowerCase()),
+=======
+  const filteredSuggestions = searchQuery.trim()
+    ? products
+        .filter((p) =>
+          p.title.toLowerCase().includes(searchQuery.toLowerCase())
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         )
         .slice(0, 5)
     : [];
@@ -182,7 +193,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
       }}
       onClick={() => setShowUserMenu(!showUserMenu)}
     >
+<<<<<<< HEAD
       {profileImage ?
+=======
+      {profileImage ? (
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         <img
           src={profileImage}
           alt="Profile"
@@ -193,6 +208,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             objectFit: "cover",
           }}
         />
+<<<<<<< HEAD
       : <svg
           xmlns="http://www.w3.org/2000/svg"
           width={
@@ -207,6 +223,13 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               "32"
             : "20"
           }
+=======
+      ) : (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={size === "40px" ? "24" : size === "60px" ? "32" : "20"}
+          height={size === "40px" ? "24" : size === "60px" ? "32" : "20"}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
           fill="currentColor"
           className="bi bi-person-circle"
           viewBox="0 0 16 16"
@@ -218,14 +241,22 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"
           />
         </svg>
+<<<<<<< HEAD
       }
+=======
+      )}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
     </div>
   );
 
   return (
     <>
       {/* Mobile Design */}
+<<<<<<< HEAD
       {isMobile ?
+=======
+      {isMobile ? (
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         <nav className="navbar bg-body-tertiary fixed-top">
           <div className="container-fluid">
             {/* Logo */}
@@ -445,6 +476,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                           Contact
                         </NavLink>
                       </li>
+<<<<<<< HEAD
                       {isLoggedIn &&
                         currentUser?.role?.toUpperCase() === "ADMIN" && (
                           <li className="nav-item">
@@ -465,11 +497,32 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             </NavLink>
                           </li>
                         )}
+=======
+                      {isLoggedIn && currentUser?.role?.toUpperCase() === 'ADMIN' && (
+                        <li className="nav-item">
+                          <NavLink
+                            to="/admin"
+                            className={({ isActive }) =>
+                              `nav-link ${isActive ? "active" : ""}`
+                            }
+                            onClick={() => setShowOffcanvas(false)}
+                            style={{ padding: "12px 20px", color: "#dc3545", fontWeight: "600" }}
+                          >
+                            <i className="bi bi-speedometer2 me-2"></i>
+                            Admin Dashboard
+                          </NavLink>
+                        </li>
+                      )}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                     </ul>
 
                     {/* User Section */}
                     <div className="p-3 border-top mt-3">
+<<<<<<< HEAD
                       {isLoggedIn ?
+=======
+                      {isLoggedIn ? (
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                         <div className="user-section">
                           {/* User Info */}
                           <div className="d-flex align-items-center mb-3">
@@ -541,12 +594,22 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                   onClick={() => fileInputRef.current.click()}
                                   disabled={uploading}
                                 >
+<<<<<<< HEAD
                                   {uploading ?
+=======
+                                  {uploading ? (
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                                     <>
                                       <span className="spinner-border spinner-border-sm me-2"></span>
                                       Uploading...
                                     </>
+<<<<<<< HEAD
                                   : "Upload New Photo"}
+=======
+                                  ) : (
+                                    "Upload New Photo"
+                                  )}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                                 </button>
                                 {profileImage && (
                                   <button
@@ -597,7 +660,12 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             </button>
                           </div>
                         </div>
+<<<<<<< HEAD
                       : <Link
+=======
+                      ) : (
+                        <Link
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                           to="/login"
                           className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
                           onClick={() => setShowOffcanvas(false)}
@@ -621,7 +689,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                           </svg>{" "}
                           Login / Sign Up
                         </Link>
+<<<<<<< HEAD
                       }
+=======
+                      )}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                     </div>
                   </div>
                 </div>
@@ -629,7 +701,12 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             )}
           </div>
         </nav>
+<<<<<<< HEAD
       : /* Desktop Design */
+=======
+      ) : (
+        /* Desktop Design */
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         <header className="px-2 px-sm-3 px-md-4 shadow-md">
           <div className="d-flex align-items-center justify-content-between py-3">
             {/* Logo */}
@@ -683,7 +760,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
               >
                 Contact
               </NavLink>
+<<<<<<< HEAD
               {isLoggedIn && currentUser?.role?.toUpperCase() === "ADMIN" && (
+=======
+              {isLoggedIn && currentUser?.role?.toUpperCase() === 'ADMIN' && (
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                 <NavLink
                   to="/admin"
                   className={({ isActive }) =>
@@ -830,7 +911,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     }}
                   >
                     <div>
+<<<<<<< HEAD
                       {isLoggedIn ?
+=======
+                      {isLoggedIn ? (
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                         <>
                           {/* User Info */}
                           <div className="p-3 border-bottom">
@@ -874,7 +959,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                                 </button>
                               </div>
                               <div>
+<<<<<<< HEAD
                                 <div className="fw-bold text-start">
+=======
+                                <div className="fw-bold">
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                                   {currentUser?.name || "User"}
                                 </div>
                                 <div className="small text-muted">
@@ -946,7 +1035,12 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             </button>
                           </div>
                         </>
+<<<<<<< HEAD
                       : <div className="p-3">
+=======
+                      ) : (
+                        <div className="p-3">
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                           <Link
                             to="/login"
                             className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
@@ -972,7 +1066,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                             Login / Sign Up
                           </Link>
                         </div>
+<<<<<<< HEAD
                       }
+=======
+                      )}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                     </div>
                   </div>
                 )}
@@ -980,7 +1078,11 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             </div>
           </div>
         </header>
+<<<<<<< HEAD
       }
+=======
+      )}
+>>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
     </>
   );
 }
