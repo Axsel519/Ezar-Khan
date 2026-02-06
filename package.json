@@ -1,34 +1,31 @@
 {
-  "name": "kitchen-shop",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "server": "json-server --watch db.json --port 3001",
-    "start": "npm run dev"
-  },
-  "dependencies": {
-    "axios": "^1.13.4",
-    "bootstrap": "^5.3.8",
-    "firebase": "^12.6.0",
-    "json-server": "^1.0.0-beta.3",
-<<<<<<< HEAD
-    "mongoose": "^9.1.5",
-=======
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.14.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
-    "@vitejs/plugin-react": "^5.1.1",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24",
-    "tailwindcss": "^3.4.7",
-    "vite": "^5.0.0"
-  }
+    "name": "kitchen-shop",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "server": "json-server --watch db.json --port 3001",
+        "start": "npm run dev"
+    },
+    "dependencies": {
+        "axios": "^1.13.4",
+        "bootstrap": "^5.3.8",
+        "firebase": "^12.6.0",
+        "json-server": "^1.0.0-beta.3",
+        "mongoose": "^9.1.5",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-router-dom": "^6.14.0"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.1.17",
+        "@vitejs/plugin-react": "^5.1.1",
+        "autoprefixer": "^10.4.14",
+        "postcss": "^8.4.24",
+        "tailwindcss": "^3.4.7",
+        "vite": "^5.0.0"
+    }
 }

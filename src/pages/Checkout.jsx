@@ -47,11 +47,7 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
   // ========== CALCULATIONS ==========
   const totalAmount = cartItems.reduce(
     (total, item) => total + item.product.price * item.quantity,
-<<<<<<< HEAD
     0,
-=======
-    0
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
   );
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -168,11 +164,7 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       try {
         // Prepare order data for backend
         const orderData = {
-<<<<<<< HEAD
           items: cartItems.map((item) => ({
-=======
-          items: cartItems.map(item => ({
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
             productId: item.product.id || item.product._id,
             quantity: item.quantity,
           })),
@@ -185,14 +177,10 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
         const response = await ordersAPI.create(orderData);
 
         // Generate order number from response
-<<<<<<< HEAD
         const orderNumber =
           response.orderNumber ||
           response.id ||
           `ORD-${Date.now().toString().slice(-8)}`;
-=======
-        const orderNumber = response.orderNumber || response.id || `ORD-${Date.now().toString().slice(-8)}`;
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
 
         setFormData((prev) => ({
           ...prev,
@@ -224,13 +212,9 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       } catch (error) {
         console.error("Payment error:", error);
         setErrors({
-<<<<<<< HEAD
           payment:
             error.response?.data?.message ||
             "فشل في معالجة الدفع. الرجاء المحاولة مرة أخرى.",
-=======
-          payment: error.response?.data?.message || "فشل في معالجة الدفع. الرجاء المحاولة مرة أخرى.",
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         });
       } finally {
         setIsProcessing(false);
@@ -517,8 +501,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       </div>
 
       <div className="payment-methods">
-<<<<<<< HEAD
-=======
         <div className="payment-option">
           <input
             type="radio"
@@ -562,7 +544,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           </label>
         </div>
 
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         {/* الدفع عند الاستلام */}
         <div className="payment-option">
           <input
@@ -820,16 +801,8 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
                       .getElementById("imagePreview")
                       .classList.remove("d-none");
                     document.getElementById("fileName").textContent = file.name;
-<<<<<<< HEAD
                     document.getElementById("fileSize").textContent =
                       `الحجم: ${(file.size / 1024).toFixed(2)} KB`;
-=======
-                    document.getElementById(
-                      "fileSize"
-                    ).textContent = `الحجم: ${(file.size / 1024).toFixed(
-                      2
-                    )} KB`;
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                   };
                   reader.readAsDataURL(file);
 
@@ -870,29 +843,16 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           onClick={handlePayment}
           disabled={isProcessing}
         >
-<<<<<<< HEAD
           {isProcessing ?
-=======
-          {isProcessing ? (
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
             <>
               <span className="spinner-border spinner-border-sm me-2"></span>
               جاري معالجة الدفع...
             </>
-<<<<<<< HEAD
           : <>
               <i className="bi bi-lock-fill me-2"></i>
               تأكيد الدفع
             </>
           }
-=======
-          ) : (
-            <>
-              <i className="bi bi-lock-fill me-2"></i>
-              تأكيد الدفع
-            </>
-          )}
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         </button>
       </div>
     </div>

@@ -23,7 +23,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 // Layout Components
 import Header from "./components/Header";
-import Footer from "./components/Footer";
 
 // Utility Functions
 import { loadCart, updateCart } from "./utils/cart";
@@ -34,15 +33,11 @@ import { loadCart, updateCart } from "./utils/cart";
 // Displays temporary success/error/warning messages
 const Toast = ({ message, type = "success" }) => {
   const bgColor =
-    type === "success"
-      ? "bg-green-500"
-      : type === "error"
-      ? "bg-red-500"
-      : type === "warning"
-      ? "bg-yellow-500"
-      : type === "info"
-      ? "bg-blue-500"
-      : "bg-gray-500";
+    type === "success" ? "bg-green-500"
+    : type === "error" ? "bg-red-500"
+    : type === "warning" ? "bg-yellow-500"
+    : type === "info" ? "bg-blue-500"
+    : "bg-gray-500";
 
   return (
     <div
@@ -105,7 +100,7 @@ function AppContent() {
     const updatedCart = updateCart(product, quantity);
     setCart(updatedCart);
 
-    const productName = product.name || product.title || 'Product';
+    const productName = product.name || product.title || "Product";
     const productId = product.id || product._id;
 
     // Show appropriate toast message
@@ -145,7 +140,7 @@ function AppContent() {
   const handleOrderConfirmation = (orderDetails) => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     const currentUser = JSON.parse(
-      localStorage.getItem("currentUser") || "null"
+      localStorage.getItem("currentUser") || "null",
     );
 
     if (!isLoggedIn || !currentUser) {
@@ -241,12 +236,6 @@ function AppContent() {
           />
         </Routes>
       </main>
-
-      {/* Footer */}
-      <Footer />
-
-      {/* Toast Notifications */}
-      {toast.show && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }

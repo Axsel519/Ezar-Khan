@@ -98,26 +98,17 @@ const Login = () => {
         password: formData.password,
       });
 
-<<<<<<< HEAD
       console.log("Login response:", response); // Debug log
-=======
-      console.log('Login response:', response); // Debug log
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
 
       // تحضير بيانات المستخدم
       const userData = {
         id: response.user._id || response.user.id,
         email: response.user.email,
-<<<<<<< HEAD
         name:
           response.user.firstName ||
           response.user.name ||
           response.user.email.split("@")[0],
-        role: response.user.role?.toUpperCase() || "CUSTOMER", // Convert to uppercase
-=======
-        name: response.user.firstName || response.user.name || response.user.email.split("@")[0],
-        role: response.user.role?.toUpperCase() || 'CUSTOMER', // Convert to uppercase
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
+        role: response.user.role?.toUpperCase() || "CUSTOMER",
         profileImage: response.user.profileImage || null,
       };
 
@@ -145,30 +136,21 @@ const Login = () => {
       }, 500);
     } catch (error) {
       console.error("خطأ في تسجيل الدخول:", error);
-<<<<<<< HEAD
 
       if (error.response?.status === 401) {
         setErrors({
           general:
             "البريد الإلكتروني أو كلمة المرور غير صحيحة. الرجاء المحاولة مرة أخرى.",
-=======
-      
-      if (error.response?.status === 401) {
-        setErrors({
-          general: "البريد الإلكتروني أو كلمة المرور غير صحيحة. الرجاء المحاولة مرة أخرى.",
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         });
       } else if (error.response?.status === 404) {
-        setErrors({ general: "لم يتم العثور على حساب. الرجاء التسجيل أولاً." });
+        setErrors({
+          general: "لم يتم العثور على حساب. الرجاء التسجيل أولاً.",
+        });
       } else {
         setErrors({
-<<<<<<< HEAD
           general:
             error.response?.data?.message ||
             "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى لاحقاً.",
-=======
-          general: error.response?.data?.message || "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى لاحقاً.",
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
         });
       }
     } finally {
@@ -317,16 +299,11 @@ const Login = () => {
 
             {/* زر تسجيل الدخول */}
             <button type="submit" className="login-btn" disabled={isLoading}>
-<<<<<<< HEAD
               {isLoading ?
-=======
-              {isLoading ? (
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
                 <>
                   <span className="btn-spinner"></span>
                   جاري تسجيل الدخول...
                 </>
-<<<<<<< HEAD
               : <>
                   <i className="bi bi-box-arrow-in-right"></i>
                   تسجيل الدخول
@@ -335,56 +312,16 @@ const Login = () => {
             </button>
 
             {/* فاصل */}
-            <div className="divider"></div>
-=======
-              ) : (
-                <>
-                  <i className="bi bi-box-arrow-in-right"></i>
-                  تسجيل الدخول
-                </>
-              )}
-            </button>
-
-            {/* فاصل */}
-            <div className="divider">
-              <span>أو متابعة عبر</span>
-            </div>
-
-            {/* أزرار وسائل التواصل الاجتماعي */}
-            <div className="social-login">
-              <button
-                type="button"
-                className="social-btn btn-google"
-                onClick={() => handleSocialLogin("google")}
-                disabled={isLoading}
-              >
-                <span className="social-icon">
-                  <i className="bi bi-google"></i>
-                </span>
-                <span className="social-text">Google</span>
-              </button>
-              <button
-                type="button"
-                className="social-btn btn-facebook"
-                onClick={() => handleSocialLogin("facebook")}
-                disabled={isLoading}
-              >
-                <span className="social-icon">
-                  <i className="bi bi-facebook"></i>
-                </span>
-                <span className="social-text">Facebook</span>
-              </button>
-            </div>
->>>>>>> 517b6a95f7b55fb5916113fdbb4ab41c75e4436c
+            <div className="divider"> </div>
           </form>
 
           {/* تذييل الصفحة */}
           <div className="login-footer">
             <p>
-              ليس لديك حساب؟{" "}
               <Link to="/register" className="register-link">
                 إنشاء حساب جديد
               </Link>
+              ليس لديك حساب؟{" "}
             </p>
           </div>
         </div>
