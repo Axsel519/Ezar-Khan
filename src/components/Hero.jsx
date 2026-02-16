@@ -17,7 +17,7 @@ export default function Hero() {
           {/* تغيير هنا فقط */}
           <div className="hero-buttons d-flex flex-wrap justify-content-center align-items-center gap-3 gap-md-4 gap-lg-5">
             <button
-              className="btn btn-primary hero-btn px-3 px-sm-4 px-md-5 py-2 py-sm-3"
+              className="btn btn-primary hero-btn"
               onClick={() => navigate("/shop")}
               style={{
                 fontSize: "clamp(0.95rem, 2vw, 1.1rem)",

@@ -404,13 +404,13 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="row mb-4">
           <div className="col-12">
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex justify-content-between align-items-center text-start">
               <div>
                 <h1 className="h3 mb-0">
                   <i className="bi bi-speedometer2 me-2"></i>
-                  Admin Dashboard
+                  Admin
                 </h1>
-                <p className="text-muted mb-0">
+                <p className="text-muted mb-0 ">
                   Welcome back, {currentUser?.name}
                 </p>
               </div>
@@ -682,75 +682,107 @@ export default function AdminDashboard() {
                               <th>Actions</th>
                             </tr>
                           </thead>
+                          {/* ... داخل جدول المنتجات (Products List) ... */}
                           <tbody>
-                            {products.map((product) => (
-                              <tr key={product.id || product._id}>
-                                <td>
-                                  <img
-                                    src={
-                                      product.images?.[0] ||
-                                      "/images/placeholder.jpg"
-                                    }
-                                    alt={product.name || product.title}
-                                    style={{
-                                      width: "50px",
-                                      height: "50px",
-                                      objectFit: "cover",
-                                    }}
-                                    className="rounded"
-                                  />
-                                </td>
-                                <td>{product.name || product.title}</td>
-                                <td>{product.price} EGP</td>
-                                <td>{product.stock || 0}</td>
-                                <td>
-                                  <span className="badge bg-secondary">
-                                    {product.category}
-                                  </span>
-                                </td>
-                                <td>
-                                  <button
-                                    className="btn btn-sm btn-outline-primary me-2"
-                                    onClick={() => handleEditProduct(product)}
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      width="16"
-                                      height="16"
-                                      fill="currentColor"
-                                      className="bi bi-pencil-square"
-                                      viewBox="0 0 16 16"
-                                    >
-                                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"
-                                      />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() =>
-                                      handleDeleteProduct(
-                                        product.id || product._id,
-                                      )
+                            {products
+                              // 1. نقوم بعمل نسخة وترتيبها لنجعل المنتجات المنتهية (stock = 0) في البداية
+                              .slice() // لإنشاء نسخة حتى لا نعدل الـ state الأصلية
+                              .sort((a, b) => {
+                                const stockA = Number(a.stock);
+                                const stockB = Number(b.stock);
+                                // إذا كان المنتج أ مخزونه صفر والمنتج ب ليس صفراً، اجعل أ أولاً
+                                if (stockA === 0 && stockB !== 0) return -1;
+                                // إذا كان المنتج ب مخزونه صفر والمنتج أ ليس صفراً، اجعل ب أولاً
+                                if (stockA !== 0 && stockB === 0) return 1;
+                                return 0; // في الحالات الأخرى حافظ على الترتيب الأصلي
+                              })
+                              .map((product) => (
+                                <tr
+                                  key={product.id || product._id}
+                                  // 2. إضافة شرط لتغيير لون الخلفية للأزرق إذا كان المخزون 0
+                                  className={
+                                    Number(product.stock) === 0 ?
+                                      "table-primary"
+                                    : ""
+                                  }
+                                >
+                                  <td>
+                                    <img
+                                      src={
+                                        product.images?.[0] ||
+                                        "/images/placeholder.jpg"
+                                      }
+                                      alt={product.name || product.title}
+                                      style={{
+                                        width: "50px",
+                                        height: "50px",
+                                        objectFit: "cover",
+                                      }}
+                                      className="rounded"
+                                    />
+                                  </td>
+                                  <td>{product.name || product.title}</td>
+                                  <td>{product.price} EGP</td>
+                                  {/* تمييز رقم المخزون باللون الأحمر إذا كان صفراً لزيادة التوضيح */}
+                                  <td
+                                    className={
+                                      Number(product.stock) === 0 ?
+                                        "text-danger fw-bold"
+                                      : ""
                                     }
                                   >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      width="16"
-                                      height="16"
-                                      fill="currentColor"
-                                      className="bi bi-trash"
-                                      viewBox="0 0 16 16"
+                                    {product.stock || 0}
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-secondary">
+                                      {product.category}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      className="btn btn-sm btn-outline-primary me-2"
+                                      onClick={() => handleEditProduct(product)}
                                     >
-                                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
-                                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
-                                    </svg>
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                                      {/* أيقونة التعديل */}
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-pencil-square"
+                                        viewBox="0 0 16 16"
+                                      >
+                                        <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                                        <path
+                                          fill-rule="evenodd"
+                                          d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      className="btn btn-sm btn-outline-danger"
+                                      onClick={() =>
+                                        handleDeleteProduct(
+                                          product.id || product._id,
+                                        )
+                                      }
+                                    >
+                                      {/* أيقونة الحذف */}
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-trash"
+                                        viewBox="0 0 16 16"
+                                      >
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                      </svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
                           </tbody>
                         </table>
                       </div>

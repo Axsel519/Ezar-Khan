@@ -9,6 +9,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
   const [sortBy, setSortBy] = useState("default");
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [products, setProducts] = useState([]);
+  const [shuffledProducts, setShuffledProducts] = useState([]); // new state للمنتجات المخلوطة
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -20,17 +21,16 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
   // استخدام searchQuery من الـ Header
   const q = searchQuery?.trim() || "";
 
-  // Fetch products from backend
+  // 1. Fetch products from backend (جلب البيانات من السيرفر)
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        // نطلب كل المنتجات (أو حسب الصفحة) ولا نعتمد على السيرفر في الفلترة حالياً
         const data = await productsAPI.getAll({
           page: currentPage,
           limit: itemsPerPage,
           search: q || undefined,
-          category: category !== "All Products" ? category : undefined,
-          sortBy: sortBy !== "default" ? sortBy : undefined,
         });
 
         // Handle different response structures
@@ -49,8 +49,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
         }
 
         console.log("Fetched products:", productsArray);
-        setProducts(productsArray);
-        setFilteredProducts(productsArray);
+        setProducts(productsArray); // نخزن البيانات الأصلية
         setTotalProducts(total);
         setError(null);
       } catch (err) {
@@ -59,7 +58,6 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
           "Failed to load products from server. Please make sure the backend is running.",
         );
         setProducts([]);
-        setFilteredProducts([]);
         setTotalProducts(0);
       } finally {
         setLoading(false);
@@ -67,24 +65,66 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage, q, category, sortBy]);
+  }, [currentPage, itemsPerPage, q]);
 
-  // إنشاء قائمة الفئات
-  const categories = React.useMemo(() => {
-    return [
-      "All Products",
-      "Kitchen Tools",
-      "Utensils",
-      "Appliances",
-      "Storage",
-    ];
-  }, []);
-
-  // فلترة وترتيب المنتجات - now handled by backend
+  // 2. Shuffle products randomly (خلط المنتجات بشكل عشوائي) - NEW
   useEffect(() => {
-    // Reset to page 1 when filters change
-    setCurrentPage(1);
-  }, [q, category, sortBy]);
+    if (products.length > 0) {
+      // عمل نسخة من المصفوفة وخلطها عشوائياً
+      const shuffled = [...products];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      setShuffledProducts(shuffled);
+    } else {
+      setShuffledProducts([]);
+    }
+  }, [products]); // يتفعل كلما تغيرت products
+
+  // 3. Logic for Local Filtering & Sorting (منطق الفلترة والترتيب المحلي)
+  useEffect(() => {
+    // استخدام المنتجات المخلوطة بدلاً من المنتجات الأصلية
+    let result = [...shuffledProducts];
+
+    // Filter by Category
+    if (category !== "All Products") {
+      result = result.filter((p) => p.category === category);
+    }
+
+    // Sort Logic
+    switch (sortBy) {
+      case "price-low":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price-high":
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case "name-asc":
+        result.sort((a, b) =>
+          (a.name || a.title || "").localeCompare(b.name || b.title || ""),
+        );
+        break;
+      case "name-desc":
+        result.sort((a, b) =>
+          (b.name || b.title || "").localeCompare(a.name || a.title || ""),
+        );
+        break;
+      default:
+        // في حالة default، نحافظ على الترتيب العشوائي ولا نغير شيئاً
+        break;
+    }
+
+    setFilteredProducts(result);
+  }, [shuffledProducts, category, sortBy]); // استخدام shuffledProducts بدلاً من products
+
+  // 4. Dynamic Categories (إنشاء الفئات تلقائياً من المنتجات)
+  const categories = React.useMemo(() => {
+    const productCategories = products.map((p) => p.category).filter(Boolean);
+    const uniqueCategories = [...new Set(productCategories)];
+    // إزالة الفئات الافتراضية والاعتماد فقط على القادم من الداتابيز
+    return ["All Products", ...uniqueCategories];
+  }, [products]);
 
   // دالة إضافة للسلة مع تأثير
   const handleAddToCart = (product, e) => {
@@ -98,13 +138,23 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
     button.classList.add("btn-success");
     button.classList.remove("btn-primary");
 
-    onAdd(product, (getQuantity(product.id) || 0) + 1);
+    onAdd(product, (getQuantity(product.id || product._id) || 0) + 1);
 
     setTimeout(() => {
       button.innerHTML = originalHTML;
       button.classList.remove("btn-success");
       button.classList.add("btn-primary");
     }, 1500);
+  };
+
+  // دالة لإعادة الخلط يدوياً (اختياري) - NEW
+  const shuffleProducts = () => {
+    const shuffled = [...shuffledProducts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setFilteredProducts(shuffled);
   };
 
   return (
@@ -219,7 +269,8 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                     onChange={(e) => setSortBy(e.target.value)}
                     className="form-select filter-select"
                   >
-                    <option value="default">Default</option>
+                    <option value="default">Default (Random)</option>{" "}
+                    {/* Modified */}
                     <option value="price-low">Price: Low to High</option>
                     <option value="price-high">Price: High to Low</option>
                     <option value="name-asc">Name: A to Z</option>
@@ -235,6 +286,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                   onClick={() => {
                     setCategory("All Products");
                     setSortBy("default");
+                    shuffleProducts(); // إعادة الخلط عند الريسيت - NEW
                   }}
                 >
                   <i className="bi bi-arrow-clockwise me-2"></i>
@@ -269,15 +321,6 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                   <i className="bi bi-arrow-clockwise me-2"></i>
                   Retry
                 </button>
-                <a
-                  href="http://localhost:3000/health"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-outline-secondary"
-                >
-                  <i className="bi bi-server me-2"></i>
-                  Check Backend
-                </a>
               </div>
             </div>
           : filteredProducts.length === 0 ?
@@ -293,6 +336,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                 onClick={() => {
                   setCategory("All Products");
                   setSortBy("default");
+                  shuffleProducts(); // إعادة الخلط عند الريسيت - NEW
                 }}
               >
                 <i className="bi bi-arrow-clockwise me-2"></i>
@@ -357,7 +401,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                               {productTitle}
                             </h5>
 
-                            {/* Product Description - سطر واحد ومحاذاة لليمين فقط */}
+                            {/* Product Description */}
                             <p
                               className="card-text text-muted flex-grow-1 mb-2"
                               style={{
@@ -373,9 +417,8 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                               {product.description}
                             </p>
 
-                            {/* Price and Actions */}
+                            {/* Price */}
                             <div className="mt-auto">
-                              {/* Price - كما كانت من قبل (من اليسار) */}
                               <div className="d-flex justify-content-between align-items-center mb-2">
                                 <h4
                                   className="text-primary fw-bold mb-0"
@@ -389,7 +432,7 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                           </div>
                         </Link>
 
-                        {/* أزرار الإضافة والكمية خارج الـ Link - كما كانت من قبل */}
+                        {/* Buttons outside Link */}
                         <div
                           className="card-footer bg-transparent border-0 p-3 pt-0"
                           style={{ position: "relative", zIndex: 2 }}
@@ -469,7 +512,10 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                       Showing{" "}
                       <strong>
                         {(currentPage - 1) * itemsPerPage + 1}-
-                        {Math.min(currentPage * itemsPerPage, totalProducts)}
+                        {Math.min(
+                          currentPage * itemsPerPage,
+                          filteredProducts.length,
+                        )}
                       </strong>{" "}
                       of <strong>{totalProducts}</strong> products
                     </p>
@@ -496,55 +542,9 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                             </button>
                           </li>
 
-                          {/* Page numbers */}
-                          {Array.from(
-                            { length: Math.ceil(totalProducts / itemsPerPage) },
-                            (_, i) => i + 1,
-                          )
-                            .filter((page) => {
-                              const totalPages = Math.ceil(
-                                totalProducts / itemsPerPage,
-                              );
-                              return (
-                                page === 1 ||
-                                page === totalPages ||
-                                (page >= currentPage - 1 &&
-                                  page <= currentPage + 1)
-                              );
-                            })
-                            .map((page, index, array) => {
-                              const prevPage = array[index - 1];
-                              const showEllipsis =
-                                prevPage && page - prevPage > 1;
-
-                              return (
-                                <React.Fragment key={page}>
-                                  {showEllipsis && (
-                                    <li className="page-item disabled">
-                                      <span className="page-link">...</span>
-                                    </li>
-                                  )}
-                                  <li
-                                    className={`page-item ${
-                                      currentPage === page ? "active" : ""
-                                    }`}
-                                  >
-                                    <button
-                                      className="page-link"
-                                      onClick={() => {
-                                        setCurrentPage(page);
-                                        window.scrollTo({
-                                          top: 0,
-                                          behavior: "smooth",
-                                        });
-                                      }}
-                                    >
-                                      {page}
-                                    </button>
-                                  </li>
-                                </React.Fragment>
-                              );
-                            })}
+                          <li className="page-item disabled">
+                            <span className="page-link">{currentPage}</span>
+                          </li>
 
                           <li
                             className={`page-item ${

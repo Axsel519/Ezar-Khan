@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { products } from "../data/products";
 import { useAuth } from "../components/AuthContext";
+import { productsAPI } from "../services/api"; // استيراد API
 
 export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   const navigate = useNavigate();
@@ -18,10 +18,13 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [searchSuggestions, setSearchSuggestions] = useState([]); // State للاقتراحات
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false); // حالة تحميل الاقتراحات
 
   // Refs
   const fileInputRef = useRef(null);
   const userMenuRef = useRef(null);
+  const searchTimeoutRef = useRef(null); // Timeout للـ debounce
 
   // Handle screen resize for mobile detection
   useEffect(() => {
@@ -65,6 +68,52 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
       document.body.style.overflow = "auto";
     };
   }, [showOffcanvas]);
+
+  // Fetch search suggestions from API - NEW
+  useEffect(() => {
+    if (searchQuery?.trim()) {
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Debounce البحث لتجنب كثرة الطلبات
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          setLoadingSuggestions(true);
+          // جلب المنتجات من API
+          const data = await productsAPI.getAll({
+            search: searchQuery,
+            limit: 5, // نحتاج أول 5 منتجات فقط
+          });
+
+          let productsArray = [];
+          if (data.products && Array.isArray(data.products)) {
+            productsArray = data.products;
+          } else if (data.data && Array.isArray(data.data)) {
+            productsArray = data.data;
+          } else if (Array.isArray(data)) {
+            productsArray = data;
+          }
+
+          setSearchSuggestions(productsArray);
+        } catch (error) {
+          console.error("Error fetching search suggestions:", error);
+          setSearchSuggestions([]);
+        } finally {
+          setLoadingSuggestions(false);
+        }
+      }, 300); // انتظار 300ms بعد آخر كتابة
+    } else {
+      setSearchSuggestions([]);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   // Handle image selection for profile picture
   const handleImageSelect = (event) => {
@@ -128,18 +177,10 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   };
 
   // Handle search functionality
-  const filteredSuggestions =
-    searchQuery.trim() ?
-      products
-        .filter((p) =>
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()),
-        )
-        .slice(0, 5)
-    : [];
-
   const handleSuggestionClick = (productId) => {
     navigate(`/shop/${productId}`);
     setSearchQuery("");
+    setSearchSuggestions([]);
     setShowOffcanvas(false);
   };
 
@@ -147,6 +188,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate("/shop");
+      setSearchSuggestions([]);
       setShowOffcanvas(false);
     }
   };
@@ -252,23 +294,30 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                   className="form-control form-control-sm"
                   style={{ width: "27vw", borderRadius: "20px" }}
                 />
-                {filteredSuggestions.length > 0 && (
-                  <ul
-                    className="list-group position-absolute w-100 mt-1"
-                    style={{ zIndex: 1000 }}
-                  >
-                    {filteredSuggestions.map((p) => (
-                      <li
-                        key={p.id}
-                        className="list-group-item list-group-item-action"
-                        onClick={() => handleSuggestionClick(p.id)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {p.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {/* عرض الاقتراحات */}
+                {loadingSuggestions ?
+                  <div className="position-absolute w-100 mt-1 p-2 text-center bg-white border rounded">
+                    <span className="spinner-border spinner-border-sm me-2"></span>
+                    Searching...
+                  </div>
+                : searchSuggestions.length > 0 && (
+                    <ul
+                      className="list-group position-absolute w-100 mt-1"
+                      style={{ zIndex: 1000 }}
+                    >
+                      {searchSuggestions.map((p) => (
+                        <li
+                          key={p.id || p._id}
+                          className="list-group-item list-group-item-action"
+                          onClick={() => handleSuggestionClick(p.id || p._id)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          {p.name || p.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                }
               </form>
 
               {/* Shopping Cart */}
@@ -722,23 +771,30 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                     border: "1px solid #ced4da",
                   }}
                 />
-                {filteredSuggestions.length > 0 && (
-                  <ul
-                    className="list-group position-absolute w-100 mt-1"
-                    style={{ zIndex: 1000 }}
-                  >
-                    {filteredSuggestions.map((p) => (
-                      <li
-                        key={p.id}
-                        className="list-group-item list-group-item-action"
-                        onClick={() => handleSuggestionClick(p.id)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {p.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {/* عرض الاقتراحات */}
+                {loadingSuggestions ?
+                  <div className="position-absolute w-100 mt-1 p-2 text-center bg-white border rounded">
+                    <span className="spinner-border spinner-border-sm me-2"></span>
+                    Searching...
+                  </div>
+                : searchSuggestions.length > 0 && (
+                    <ul
+                      className="list-group position-absolute w-100 mt-1"
+                      style={{ zIndex: 1000 }}
+                    >
+                      {searchSuggestions.map((p) => (
+                        <li
+                          key={p.id || p._id}
+                          className="list-group-item list-group-item-action"
+                          onClick={() => handleSuggestionClick(p.id || p._id)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          {p.name || p.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                }
               </form>
             </div>
 
