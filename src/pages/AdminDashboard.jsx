@@ -3,8 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
-import { productsAPI, ordersAPI, uploadsAPI } from "../services/api";
-
+import {
+  productsAPI,
+  ordersAPI,
+  uploadsAPI,
+  couponsAPI,
+} from "../services/api";
 export default function AdminDashboard() {
   const { currentUser, isLoggedIn } = useAuth();
   const navigate = useNavigate();
@@ -12,11 +16,12 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("products");
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [coupons, setCoupons] = useState([]); // New state for coupons
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Pagination state
+  // Pagination state for products
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -35,6 +40,17 @@ export default function AdminDashboard() {
   });
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Coupon form state
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    discountPercentage: "",
+    isActive: true,
+    expiresAt: "",
+    maxUsage: "",
+  });
+  const [editingCoupon, setEditingCoupon] = useState(null);
+  const [showExpired, setShowExpired] = useState(false); // Filter for expired coupons
+
   // Check admin access - log for debugging
   useEffect(() => {
     console.log("Admin Check:", {
@@ -51,6 +67,8 @@ export default function AdminDashboard() {
       fetchProducts();
     } else if (activeTab === "orders") {
       fetchOrders();
+    } else if (activeTab === "coupons") {
+      fetchCoupons();
     }
   }, [activeTab, currentPage]); // Re-fetch when page changes
 
@@ -106,6 +124,20 @@ export default function AdminDashboard() {
       setOrders(ordersArray);
     } catch (err) {
       setError("Failed to fetch orders");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch coupons
+  const fetchCoupons = async () => {
+    try {
+      setLoading(true);
+      const data = await couponsAPI.getAll();
+      setCoupons(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError("Failed to fetch coupons");
+      setCoupons([]);
     } finally {
       setLoading(false);
     }
@@ -180,7 +212,90 @@ export default function AdminDashboard() {
     });
   };
 
-  // Pagination calculations
+  // Coupon CRUD Operations
+  const handleCouponSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const couponData = {
+        code: couponForm.code.toUpperCase(),
+        discountPercentage: Number(couponForm.discountPercentage),
+        isActive: couponForm.isActive,
+        ...(couponForm.expiresAt && {
+          expiresAt: new Date(couponForm.expiresAt).toISOString(),
+        }),
+        ...(couponForm.maxUsage && { maxUsage: Number(couponForm.maxUsage) }),
+      };
+
+      if (editingCoupon) {
+        await couponsAPI.update(editingCoupon._id, couponData);
+        setSuccess("Coupon updated successfully!");
+      } else {
+        await couponsAPI.create(couponData);
+        setSuccess("Coupon created successfully!");
+      }
+
+      resetCouponForm();
+      fetchCoupons();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save coupon");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditCoupon = (coupon) => {
+    setEditingCoupon(coupon);
+    setCouponForm({
+      code: coupon.code,
+      discountPercentage: coupon.discountPercentage,
+      isActive: coupon.isActive,
+      expiresAt: coupon.expiresAt ? coupon.expiresAt.split("T")[0] : "",
+      maxUsage: coupon.maxUsage || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDeleteCoupon = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this coupon?")) return;
+
+    try {
+      setLoading(true);
+      await couponsAPI.delete(id);
+      setSuccess("Coupon deleted successfully!");
+      fetchCoupons();
+    } catch (err) {
+      setError("Failed to delete coupon");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetCouponForm = () => {
+    setEditingCoupon(null);
+    setCouponForm({
+      code: "",
+      discountPercentage: "",
+      isActive: true,
+      expiresAt: "",
+      maxUsage: "",
+    });
+  };
+
+  // Check if coupon is expired
+  const isCouponExpired = (coupon) => {
+    if (!coupon.expiresAt) return false;
+    return new Date(coupon.expiresAt) < new Date();
+  };
+
+  // Filter coupons based on showExpired
+  const filteredCoupons = coupons.filter((coupon) =>
+    showExpired ? true : !isCouponExpired(coupon),
+  );
+
+  // Pagination calculations for products
   const totalPages = Math.ceil(totalProducts / itemsPerPage);
   const indexOfFirstProduct = (currentPage - 1) * itemsPerPage;
   const indexOfLastProduct = Math.min(
@@ -475,6 +590,15 @@ export default function AdminDashboard() {
               Orders
             </button>
           </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${activeTab === "coupons" ? "active" : ""}`}
+              onClick={() => setActiveTab("coupons")}
+            >
+              <i className="bi bi-tags me-2"></i>
+              Coupons
+            </button>
+          </li>
         </ul>
 
         {/* Products Tab */}
@@ -674,6 +798,7 @@ export default function AdminDashboard() {
                         <table className="table table-hover">
                           <thead>
                             <tr>
+                              <th>ID</th>
                               <th>Image</th>
                               <th>Name</th>
                               <th>Price</th>
@@ -682,30 +807,30 @@ export default function AdminDashboard() {
                               <th>Actions</th>
                             </tr>
                           </thead>
-                          {/* ... داخل جدول المنتجات (Products List) ... */}
                           <tbody>
                             {products
-                              // 1. نقوم بعمل نسخة وترتيبها لنجعل المنتجات المنتهية (stock = 0) في البداية
-                              .slice() // لإنشاء نسخة حتى لا نعدل الـ state الأصلية
+                              .slice()
                               .sort((a, b) => {
                                 const stockA = Number(a.stock);
                                 const stockB = Number(b.stock);
-                                // إذا كان المنتج أ مخزونه صفر والمنتج ب ليس صفراً، اجعل أ أولاً
                                 if (stockA === 0 && stockB !== 0) return -1;
-                                // إذا كان المنتج ب مخزونه صفر والمنتج أ ليس صفراً، اجعل ب أولاً
                                 if (stockA !== 0 && stockB === 0) return 1;
-                                return 0; // في الحالات الأخرى حافظ على الترتيب الأصلي
+                                return 0;
                               })
                               .map((product) => (
                                 <tr
                                   key={product.id || product._id}
-                                  // 2. إضافة شرط لتغيير لون الخلفية للأزرق إذا كان المخزون 0
                                   className={
                                     Number(product.stock) === 0 ?
                                       "table-primary"
                                     : ""
                                   }
                                 >
+                                  <td>
+                                    {product.numericId != null ?
+                                      product.numericId
+                                    : product.id || product._id}
+                                  </td>
                                   <td>
                                     <img
                                       src={
@@ -723,7 +848,6 @@ export default function AdminDashboard() {
                                   </td>
                                   <td>{product.name || product.title}</td>
                                   <td>{product.price} EGP</td>
-                                  {/* تمييز رقم المخزون باللون الأحمر إذا كان صفراً لزيادة التوضيح */}
                                   <td
                                     className={
                                       Number(product.stock) === 0 ?
@@ -743,18 +867,17 @@ export default function AdminDashboard() {
                                       className="btn btn-sm btn-outline-primary me-2"
                                       onClick={() => handleEditProduct(product)}
                                     >
-                                      {/* أيقونة التعديل */}
                                       <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="16"
                                         height="16"
                                         fill="currentColor"
-                                        class="bi bi-pencil-square"
+                                        className="bi bi-pencil-square"
                                         viewBox="0 0 16 16"
                                       >
                                         <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
                                         <path
-                                          fill-rule="evenodd"
+                                          fillRule="evenodd"
                                           d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"
                                         />
                                       </svg>
@@ -767,13 +890,12 @@ export default function AdminDashboard() {
                                         )
                                       }
                                     >
-                                      {/* أيقونة الحذف */}
                                       <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="16"
                                         height="16"
                                         fill="currentColor"
-                                        class="bi bi-trash"
+                                        className="bi bi-trash"
                                         viewBox="0 0 16 16"
                                       >
                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
@@ -1091,6 +1213,277 @@ export default function AdminDashboard() {
                                   </tr>
                                 )}
                               </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Coupons Tab */}
+        {activeTab === "coupons" && (
+          <div className="row">
+            {/* Coupon Form */}
+            <div className="col-lg-4 mb-4">
+              <div className="card shadow-sm">
+                <div className="card-header bg-success text-white">
+                  <h5 className="mb-0">
+                    <i className="bi bi-tag me-2"></i>
+                    {editingCoupon ? "Edit Coupon" : "Create New Coupon"}
+                  </h5>
+                </div>
+                <div className="card-body">
+                  <form onSubmit={handleCouponSubmit}>
+                    <div className="mb-3">
+                      <label className="form-label">Coupon Code</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={couponForm.code}
+                        onChange={(e) =>
+                          setCouponForm({
+                            ...couponForm,
+                            code: e.target.value.toUpperCase(),
+                          })
+                        }
+                        placeholder="e.g., SUMMER20"
+                        required
+                      />
+                      <small className="text-muted">
+                        Code will be automatically converted to uppercase
+                      </small>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Discount Percentage</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={couponForm.discountPercentage}
+                        onChange={(e) =>
+                          setCouponForm({
+                            ...couponForm,
+                            discountPercentage: e.target.value,
+                          })
+                        }
+                        min="0"
+                        max="100"
+                        placeholder="e.g., 20"
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Expiry Date (Optional)
+                      </label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={couponForm.expiresAt}
+                        onChange={(e) =>
+                          setCouponForm({
+                            ...couponForm,
+                            expiresAt: e.target.value,
+                          })
+                        }
+                        min={new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Max Usage (Optional)</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={couponForm.maxUsage}
+                        onChange={(e) =>
+                          setCouponForm({
+                            ...couponForm,
+                            maxUsage: e.target.value,
+                          })
+                        }
+                        min="1"
+                        placeholder="Leave empty for unlimited"
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="form-check">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="isActive"
+                          checked={couponForm.isActive}
+                          onChange={(e) =>
+                            setCouponForm({
+                              ...couponForm,
+                              isActive: e.target.checked,
+                            })
+                          }
+                        />
+                        <label className="form-check-label" htmlFor="isActive">
+                          Active (Can be used by customers)
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="d-grid gap-2">
+                      <button
+                        type="submit"
+                        className="btn btn-success"
+                        disabled={loading}
+                      >
+                        {loading ?
+                          "Saving..."
+                        : editingCoupon ?
+                          "Update Coupon"
+                        : "Create Coupon"}
+                      </button>
+                      {editingCoupon && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={resetCouponForm}
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            {/* Coupons List */}
+            <div className="col-lg-8">
+              <div className="card shadow-sm">
+                <div className="card-header d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0">
+                    <i className="bi bi-tags me-2"></i>
+                    Coupons List ({filteredCoupons.length})
+                  </h5>
+                  <div className="form-check form-switch">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="showExpired"
+                      checked={showExpired}
+                      onChange={(e) => setShowExpired(e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor="showExpired">
+                      Show expired coupons
+                    </label>
+                  </div>
+                </div>
+                <div className="card-body">
+                  {loading ?
+                    <div className="text-center py-5">
+                      <div
+                        className="spinner-border text-success"
+                        role="status"
+                      >
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                  : filteredCoupons.length === 0 ?
+                    <div className="text-center py-5 text-muted">
+                      <i className="bi bi-tag display-1"></i>
+                      <p className="mt-3">No coupons found</p>
+                    </div>
+                  : <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Code</th>
+                            <th>Discount</th>
+                            <th>Status</th>
+                            <th>Usage</th>
+                            <th>Expires</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredCoupons.map((coupon) => {
+                            const expired = isCouponExpired(coupon);
+                            return (
+                              <tr
+                                key={coupon._id}
+                                className={expired ? "table-secondary" : ""}
+                              >
+                                <td>
+                                  <strong className="text-primary">
+                                    {coupon.code}
+                                  </strong>
+                                </td>
+                                <td>
+                                  <span className="badge bg-info">
+                                    {coupon.discountPercentage}% OFF
+                                  </span>
+                                </td>
+                                <td>
+                                  {expired ?
+                                    <span className="badge bg-secondary">
+                                      Expired
+                                    </span>
+                                  : coupon.isActive ?
+                                    <span className="badge bg-success">
+                                      Active
+                                    </span>
+                                  : <span className="badge bg-warning">
+                                      Inactive
+                                    </span>
+                                  }
+                                </td>
+                                <td>
+                                  {coupon.usageCount || 0}
+                                  {coupon.maxUsage && (
+                                    <span className="text-muted">
+                                      {" "}
+                                      / {coupon.maxUsage}
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  {coupon.expiresAt ?
+                                    new Date(
+                                      coupon.expiresAt,
+                                    ).toLocaleDateString()
+                                  : <span className="text-muted">
+                                      No expiry
+                                    </span>
+                                  }
+                                </td>
+                                <td>
+                                  <small>
+                                    {new Date(
+                                      coupon.createdAt,
+                                    ).toLocaleDateString()}
+                                  </small>
+                                </td>
+                                <td>
+                                  <button
+                                    className="btn btn-sm btn-outline-primary me-2"
+                                    onClick={() => handleEditCoupon(coupon)}
+                                  >
+                                    <i className="bi bi-pencil"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() =>
+                                      handleDeleteCoupon(coupon._id)
+                                    }
+                                  >
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                </td>
+                              </tr>
                             );
                           })}
                         </tbody>

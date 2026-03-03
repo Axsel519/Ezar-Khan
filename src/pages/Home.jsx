@@ -35,7 +35,7 @@ export default function Home({ onAdd }) {
       try {
         setLoading(true);
         const data = await productsAPI.getAll();
-        
+
         // Ensure we always get an array
         let productsArray = [];
         if (Array.isArray(data)) {
@@ -45,8 +45,8 @@ export default function Home({ onAdd }) {
         } else if (data && Array.isArray(data.data)) {
           productsArray = data.data;
         }
-        
-        console.log('Fetched products for home:', productsArray);
+
+        console.log("Fetched products for home:", productsArray);
         const randomFeatured = getRandomProducts(productsArray, 4);
         setFeaturedProducts(randomFeatured);
       } catch (error) {

@@ -1,22 +1,29 @@
 /** @format */
 
 // ============================================
-// CHECKOUT COMPONENT - 4-Step Order Process
+// CHECKOUT COMPONENT - 4-Step Order Process with Coupon Support
 // ============================================
-// This component handles the complete checkout process with 4 steps:
-// 1. Cart Review → 2. Information → 3. Payment → 4. Complete
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
 import { ordersAPI } from "../services/api";
+import couponsAPI from "../services/couponsAPI";
 
 export default function Checkout({ cartItems = [], onUpdateCart }) {
   const navigate = useNavigate();
   const { isLoggedIn, currentUser } = useAuth();
 
   // ========== STATE MANAGEMENT ==========
-  const [currentStep, setCurrentStep] = useState(1); // Current step (1-4)
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponValidation, setCouponValidation] = useState(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
   const [formData, setFormData] = useState({
     // Step 1: Cart Review
     cartVerified: false,
@@ -31,7 +38,7 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
     zipCode: "",
 
     // Step 3: Payment
-    paymentMethod: "credit-card",
+    paymentMethod: "cash-on-delivery",
     cardNumber: "",
     cardExpiry: "",
     cardCvv: "",
@@ -51,20 +58,22 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
   );
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const tax = totalAmount * 0.14; // 14% tax
-  const discount = totalAmount * 0.1; // 10% discount
-  const shipping = 0; // Free shipping
+  const tax = totalAmount * 0.14;
+
+  // Calculate discount based on applied coupon
+  const discountPercentage = appliedCoupon?.discountPercentage || 0;
+  const discount = (totalAmount * discountPercentage) / 100;
+
+  const shipping = 0;
   const finalTotal = totalAmount + tax + shipping - discount;
 
   // ========== EFFECTS ==========
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoggedIn) {
       navigate("/login", { state: { from: "/checkout" } });
     }
   }, [isLoggedIn, navigate]);
 
-  // Auto-fill user data if logged in
   useEffect(() => {
     if (currentUser && currentStep === 2) {
       setFormData((prev) => ({
@@ -75,18 +84,60 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
     }
   }, [currentUser, currentStep]);
 
+  // ========== COUPON FUNCTIONS ==========
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError("الرجاء إدخال كود الخصم");
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    setCouponError("");
+    setCouponValidation(null);
+
+    try {
+      const result = await couponsAPI.validate(couponCode.toUpperCase());
+
+      if (result.valid) {
+        setAppliedCoupon({
+          code: couponCode.toUpperCase(),
+          discountPercentage: result.discountPercentage,
+        });
+        setCouponValidation(result);
+        setCouponError("");
+      } else {
+        setAppliedCoupon(null);
+        setCouponValidation(result);
+        setCouponError(result.message || "كود الخصم غير صالح");
+      }
+    } catch (error) {
+      console.error("Error validating coupon:", error);
+      setCouponError("فشل في التحقق من الكود. الرجاء المحاولة مرة أخرى.");
+      setAppliedCoupon(null);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponCode("");
+    setAppliedCoupon(null);
+    setCouponValidation(null);
+    setCouponError("");
+  };
+
   // ========== VALIDATION FUNCTIONS ==========
   const validateStep = (step) => {
     const newErrors = {};
 
     switch (step) {
-      case 1: // Cart Review
+      case 1:
         if (cartItems.length === 0) {
           newErrors.cart = "سلة التسوق فارغة. الرجاء إضافة منتجات أولاً.";
         }
         break;
 
-      case 2: // Information
+      case 2:
         if (!formData.fullName.trim()) {
           newErrors.fullName = "الاسم الكامل مطلوب";
         }
@@ -119,7 +170,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       [name]: type === "checkbox" ? checked : value,
     }));
 
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -144,7 +194,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       setIsProcessing(true);
 
       try {
-        // Prepare order data for backend
         const orderData = {
           items: cartItems.map((item) => ({
             productId: item.product.id || item.product._id,
@@ -153,12 +202,11 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           shippingAddress: `${formData.address}, ${formData.city}, ${formData.country}`,
           phone: formData.phone,
           paymentMethod: formData.paymentMethod,
+          ...(appliedCoupon && { couponCode: appliedCoupon.code }),
         };
 
-        // Create order via backend API
         const response = await ordersAPI.create(orderData);
 
-        // Generate order number from response
         const orderNumber =
           response.orderNumber ||
           response.id ||
@@ -172,7 +220,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
 
         setCurrentStep(4);
 
-        // Save order to localStorage for reference
         const orderDetails = {
           orderNumber,
           items: cartItems,
@@ -186,6 +233,7 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
             method: formData.paymentMethod,
             amount: finalTotal,
           },
+          coupon: appliedCoupon,
           date: new Date().toISOString(),
           status: "confirmed",
         };
@@ -205,10 +253,7 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
   };
 
   const handleCompleteOrder = () => {
-    // Clear cart after successful order
     cartItems.forEach((item) => onUpdateCart(item.product, 0));
-
-    // Navigate to home or order confirmation page
     navigate("/", { state: { orderCompleted: true } });
   };
 
@@ -251,33 +296,99 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
         ))}
       </div>
 
-      <div className="step-summary">
+      {/* Coupon Section - New */}
+      <div className="coupon-section mt-4">
+        <h5 className="mb-3">
+          <i className="bi bi-tag me-2"></i>
+          هل لديك كود خصم؟
+        </h5>
+        <div className="coupon-input-group">
+          <div className="input-group">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="أدخل كود الخصم"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              disabled={appliedCoupon !== null}
+              dir="ltr"
+            />
+            {appliedCoupon ?
+              <button
+                className="btn btn-outline-danger"
+                type="button"
+                onClick={removeCoupon}
+              >
+                <i className="bi bi-x-circle me-2"></i>
+                إلغاء
+              </button>
+            : <button
+                className="btn btn-primary"
+                type="button"
+                onClick={validateCoupon}
+                disabled={isValidatingCoupon || !couponCode.trim()}
+              >
+                {isValidatingCoupon ?
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2"></span>
+                    جاري التحقق...
+                  </>
+                : "تطبيق"}
+              </button>
+            }
+          </div>
+
+          {/* Coupon validation message */}
+          {couponError && (
+            <div className="alert alert-danger mt-2 py-2">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              {couponError}
+            </div>
+          )}
+
+          {couponValidation?.valid && appliedCoupon && (
+            <div className="alert alert-success mt-2 py-2">
+              <i className="bi bi-check-circle me-2"></i>
+              تم تطبيق الكود! خصم {appliedCoupon.discountPercentage}%
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="step-summary mt-4">
         <div className="summary-row">
-          <span> : عدد العناصر</span>
+          <span>عدد العناصر :</span>
           <span>{totalItems}</span>
         </div>
         <div className="summary-row">
-          <span> : الإجمالي الجزئي</span>
+          <span>الإجمالي الجزئي :</span>
           <span>
             {totalAmount.toFixed(2)} <span className="currency">EGP</span>
           </span>
         </div>
         <div className="summary-row">
-          <span> : الضريبة (14%)</span>
+          <span>الضريبة (14%) :</span>
           <span>
             {tax.toFixed(2)} <span className="currency">EGP</span>
           </span>
         </div>
         <div className="summary-row">
-          <span> : الشحن</span>
+          <span>الشحن :</span>
           <span className="text-success">مجاني</span>
         </div>
-        <div className="summary-row">
-          <span> : الخصم (10%)</span>
-          <span className="text-success">-{discount.toFixed(2)} EGP</span>
-        </div>
+
+        {/* Discount row - only show if coupon is applied */}
+        {appliedCoupon && (
+          <div className="summary-row text-success">
+            <span>الخصم ({appliedCoupon.discountPercentage}%) :</span>
+            <span>
+              -{discount.toFixed(2)} <span className="currency">EGP</span>
+            </span>
+          </div>
+        )}
+
         <div className="summary-row total">
-          <span> : الإجمالي النهائي</span>
+          <span>الإجمالي النهائي :</span>
           <strong>
             {finalTotal.toFixed(2)} <span className="currency">EGP</span>
           </strong>
@@ -289,7 +400,11 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           <i className="bi bi-arrow-right me-2"></i>
           العودة للسلة
         </Link>
-        <button className="btn btn-primary" onClick={handleNextStep}>
+        <button
+          className="btn btn-primary"
+          onClick={handleNextStep}
+          disabled={cartItems.length === 0}
+        >
           المتابعة للمعلومات
           <i className="bi bi-arrow-left ms-2"></i>
         </button>
@@ -385,22 +500,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
 
         <div className="col-md-4 mb-3">
           <label htmlFor="city" className="form-label">
-            المدينة <span className="text-danger">*</span>
-          </label>
-          <input
-            type="text"
-            className={`form-control ${errors.city ? "is-invalid" : ""}`}
-            id="city"
-            name="city"
-            value={formData.city}
-            onChange={handleInputChange}
-            required
-          />
-          {errors.city && <div className="invalid-feedback">{errors.city}</div>}
-        </div>
-
-        <div className="col-md-4 mb-3">
-          <label htmlFor="city" className="form-label">
             المحافظة <span className="text-danger">*</span>
           </label>
           <select
@@ -483,7 +582,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
       </div>
 
       <div className="payment-methods">
-        {/* الدفع عند الاستلام */}
         <div className="payment-option">
           <input
             type="radio"
@@ -506,11 +604,27 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
         </div>
       </div>
 
+      {/* Order Summary with Discount */}
       <div className="order-summary-sm mt-4">
         <h6>ملخص الطلب:</h6>
         <div className="summary-row">
-          <span>الإجمالي:</span>
-          <strong>{finalTotal.toFixed(2)} جنيه</strong>
+          <span>الإجمالي الجزئي:</span>
+          <span>{totalAmount.toFixed(2)} EGP</span>
+        </div>
+        <div className="summary-row">
+          <span>الضريبة (14%):</span>
+          <span>{tax.toFixed(2)} EGP</span>
+        </div>
+        {appliedCoupon && (
+          <div className="summary-row text-success">
+            <span>الخصم ({appliedCoupon.discountPercentage}%):</span>
+            <span>-{discount.toFixed(2)} EGP</span>
+          </div>
+        )}
+        <hr />
+        <div className="summary-row total">
+          <span>الإجمالي النهائي:</span>
+          <strong>{finalTotal.toFixed(2)} EGP</strong>
         </div>
       </div>
 
@@ -567,6 +681,15 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           </span>
         </div>
 
+        {appliedCoupon && (
+          <div className="coupon-applied mt-2">
+            <span className="badge bg-success">
+              تم تطبيق الكود: {appliedCoupon.code} (خصم{" "}
+              {appliedCoupon.discountPercentage}%)
+            </span>
+          </div>
+        )}
+
         <div className="order-total mt-3">
           <h6>الإجمالي المدفوع:</h6>
           <p className="display-6 fw-bold text-success">
@@ -600,11 +723,11 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="32"
-                height="32" // تكبير من 16 إلى 32
+                height="32"
                 fill="currentColor"
                 className="bi bi-cart-check-fill"
                 viewBox="0 0 16 16"
-                style={{ color: "white" }} // إضافة لون أبيض واضح
+                style={{ color: "white" }}
               >
                 <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-1.646-7.646-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708" />
               </svg>
@@ -619,28 +742,24 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
           {/* Progress Steps */}
           <div className="checkout-progress">
             <div className="progress-steps">
-              {/* Step 1: Cart */}
               <div className={`step ${currentStep >= 1 ? "active" : ""}`}>
                 <span className="step-number">1</span>
                 <span className="step-label">السلة</span>
               </div>
               <div className="step-connector"></div>
 
-              {/* Step 2: Information */}
               <div className={`step ${currentStep >= 2 ? "active" : ""}`}>
                 <span className="step-number">2</span>
                 <span className="step-label">المعلومات</span>
               </div>
               <div className="step-connector"></div>
 
-              {/* Step 3: Payment */}
               <div className={`step ${currentStep >= 3 ? "active" : ""}`}>
                 <span className="step-number">3</span>
                 <span className="step-label">الدفع</span>
               </div>
               <div className="step-connector"></div>
 
-              {/* Step 4: Complete */}
               <div className={`step ${currentStep >= 4 ? "active" : ""}`}>
                 <span className="step-number">4</span>
                 <span className="step-label">التأكيد</span>
@@ -655,7 +774,6 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
         <div className="row">
           <div className="col-lg-8">
             <div className="checkout-form-container">
-              {/* Render Current Step */}
               {currentStep === 1 && renderStep1()}
               {currentStep === 2 && renderStep2()}
               {currentStep === 3 && renderStep3()}
@@ -719,12 +837,15 @@ export default function Checkout({ cartItems = [], onUpdateCart }) {
                   <span>Shipping:</span>
                   <span className="text-success">FREE</span>
                 </div>
-                <div className="total-row">
-                  <span>Discount (10%):</span>
-                  <span className="text-success">
-                    -{discount.toFixed(2)} EGP
-                  </span>
-                </div>
+                {appliedCoupon && (
+                  <div className="total-row text-success">
+                    <span>Discount ({appliedCoupon.discountPercentage}%):</span>
+                    <span>
+                      -{discount.toFixed(2)}{" "}
+                      <span className="currency">EGP</span>
+                    </span>
+                  </div>
+                )}
                 <hr />
                 <div className="total-row final">
                   <span>Total Amount : </span>

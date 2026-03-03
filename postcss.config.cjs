@@ -2,8 +2,8 @@
 
 // postcss.config.cjs
 module.exports = {
-    // 🟢 يجب استخدام CommonJS في ملفات .cjs
-    plugins: {
-        // ...
-    },
+  // 🟢 يجب استخدام CommonJS في ملفات .cjs
+  plugins: {
+    // ...
+  },
 };

@@ -23,9 +23,9 @@ export default function ProductCard({ product, onAdd }) {
 
   // الحصول على الصورة الرئيسية للمنتج
   const imageSource =
-    product.images && product.images.length > 0
-      ? getImagePath(product.images[0])
-      : null;
+    product.images && product.images.length > 0 ?
+      getImagePath(product.images[0])
+    : null;
 
   return (
     <div
@@ -44,16 +44,16 @@ export default function ProductCard({ product, onAdd }) {
               imageSource ||
               // صورة افتراضية في حالة عدم وجود صورة
               `https://placehold.co/400x300/e9ecef/495057?text=${encodeURIComponent(
-                (product.name || product.title || 'Product').split(" ")[0]
+                (product.name || product.title || "Product").split(" ")[0],
               )}`
             }
             className="card-img-top object-fit-cover h-100 w-100"
             alt={product.name || product.title}
             onError={(e) => {
               e.target.onerror = null;
-              const productName = product.name || product.title || 'Product';
+              const productName = product.name || product.title || "Product";
               e.target.src = `https://placehold.co/400x300/e9ecef/495057?text=${encodeURIComponent(
-                productName.split(" ")[0]
+                productName.split(" ")[0],
               )}`;
             }}
             style={{ objectFit: "cover" }}

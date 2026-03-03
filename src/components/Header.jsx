@@ -18,13 +18,15 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [searchSuggestions, setSearchSuggestions] = useState([]); // State للاقتراحات
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false); // حالة تحميل الاقتراحات
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Refs
   const fileInputRef = useRef(null);
   const userMenuRef = useRef(null);
-  const searchTimeoutRef = useRef(null); // Timeout للـ debounce
+  const searchTimeoutRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
   // Handle screen resize for mobile detection
   useEffect(() => {
@@ -57,6 +59,20 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.addEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Prevent scrolling when offcanvas is open
   useEffect(() => {
     if (showOffcanvas) {
@@ -69,44 +85,64 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     };
   }, [showOffcanvas]);
 
-  // Fetch search suggestions from API - NEW
+  // Fetch search suggestions from API - Enhanced for real-time suggestions
   useEffect(() => {
-    if (searchQuery?.trim()) {
-      // Clear previous timeout
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-
-      // Debounce البحث لتجنب كثرة الطلبات
-      searchTimeoutRef.current = setTimeout(async () => {
-        try {
-          setLoadingSuggestions(true);
-          // جلب المنتجات من API
-          const data = await productsAPI.getAll({
-            search: searchQuery,
-            limit: 5, // نحتاج أول 5 منتجات فقط
-          });
-
-          let productsArray = [];
-          if (data.products && Array.isArray(data.products)) {
-            productsArray = data.products;
-          } else if (data.data && Array.isArray(data.data)) {
-            productsArray = data.data;
-          } else if (Array.isArray(data)) {
-            productsArray = data;
-          }
-
-          setSearchSuggestions(productsArray);
-        } catch (error) {
-          console.error("Error fetching search suggestions:", error);
-          setSearchSuggestions([]);
-        } finally {
-          setLoadingSuggestions(false);
-        }
-      }, 300); // انتظار 300ms بعد آخر كتابة
-    } else {
+    if (!searchQuery?.trim()) {
       setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
     }
+
+    setShowSuggestions(true);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setLoadingSuggestions(true);
+
+        const data = await productsAPI.getAll({
+          limit: 50, // نجيب عدد أكبر ونفلتر إحنا
+        });
+
+        let productsArray = [];
+
+        if (data.products && Array.isArray(data.products)) {
+          productsArray = data.products;
+        } else if (data.data && Array.isArray(data.data)) {
+          productsArray = data.data;
+        } else if (Array.isArray(data)) {
+          productsArray = data;
+        }
+
+        // 🔥 فلترة بالـ startsWith (أول حرف فقط)
+        const filtered = productsArray
+          .filter((product) => {
+            const name = (product.name || product.title || "").toLowerCase();
+
+            // include numericId along with regular id for matching
+            const numeric =
+              product.numericId != null ? String(product.numericId) : "";
+            const mongoId = String(product.id || product._id || "");
+
+            return (
+              name.startsWith(searchQuery.toLowerCase()) ||
+              numeric.startsWith(searchQuery) ||
+              mongoId.startsWith(searchQuery)
+            );
+          })
+          .slice(0, 8); // نعرض 8 بس
+
+        setSearchSuggestions(filtered);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchSuggestions([]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }, 200);
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -181,6 +217,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     navigate(`/shop/${productId}`);
     setSearchQuery("");
     setSearchSuggestions([]);
+    setShowSuggestions(false);
     setShowOffcanvas(false);
   };
 
@@ -189,7 +226,19 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     if (searchQuery.trim()) {
       navigate("/shop");
       setSearchSuggestions([]);
+      setShowSuggestions(false);
       setShowOffcanvas(false);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    // سيتم تفعيل الـ useEffect تلقائياً وجلب الاقتراحات
+  };
+
+  const handleSearchFocus = () => {
+    if (searchQuery?.trim()) {
+      setShowSuggestions(true);
     }
   };
 
@@ -202,6 +251,22 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     setTimeout(() => {
       window.location.reload();
     }, 100);
+  };
+
+  // Highlight matching text in suggestions
+  const highlightMatch = (text, query) => {
+    if (!query || !text) return text;
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+    return parts.map((part, index) =>
+      part.toLowerCase() === query.toLowerCase() ?
+        <span
+          key={index}
+          style={{ backgroundColor: "#fff3cd", fontWeight: "bold" }}
+        >
+          {part}
+        </span>
+      : part,
+    );
   };
 
   // Profile icon component
@@ -264,6 +329,112 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
     </div>
   );
 
+  // Search Suggestions Component
+  const SearchSuggestionsList = () => {
+    if (!showSuggestions) return null;
+
+    return (
+      <div
+        className="position-absolute w-100 mt-1 bg-white border rounded shadow"
+        style={{
+          zIndex: 1000,
+          maxHeight: "400px",
+          overflowY: "auto",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        }}
+      >
+        {loadingSuggestions ?
+          <div className="p-3 text-center">
+            <div
+              className="spinner-border spinner-border-sm text-primary me-2"
+              role="status"
+            >
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <span className="text-muted">جاري البحث...</span>
+          </div>
+        : searchSuggestions.length > 0 ?
+          <>
+            <div className="p-2 bg-light border-bottom">
+              <small className="text-muted">
+                {searchSuggestions.length} نتيجة للبحث "{searchQuery}"
+              </small>
+            </div>
+            <ul className="list-group list-group-flush">
+              {searchSuggestions.map((p) => {
+                const targetId =
+                  p.numericId != null ? p.numericId : p.id || p._id;
+                return (
+                  <li
+                    key={targetId}
+                    className="list-group-item list-group-item-action d-flex align-items-center"
+                    onClick={() => handleSuggestionClick(targetId)}
+                    style={{ cursor: "pointer", padding: "12px 15px" }}
+                  >
+                    {/* Product Image */}
+                    {p.image && (
+                      <img
+                        src={p.image}
+                        alt={p.name || p.title}
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          objectFit: "cover",
+                          borderRadius: "4px",
+                          marginRight: "12px",
+                        }}
+                      />
+                    )}
+                    {/* Product Info */}
+                    <div className="flex-grow-1">
+                      <div className="fw-bold">
+                        {p.numericId != null ? `${p.numericId} - ` : ""}
+                        {highlightMatch(p.name || p.title, searchQuery)}
+                      </div>
+                      {p.price && (
+                        <small className="text-primary">{p.price} ج.م</small>
+                      )}
+                    </div>
+                    {/* View Icon */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      className="text-muted"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+                      />
+                    </svg>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        : searchQuery && (
+            <div className="p-4 text-center text-muted">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="40"
+                height="40"
+                fill="currentColor"
+                className="mb-2"
+                viewBox="0 0 16 16"
+              >
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+              </svg>
+              <p>لا توجد نتائج لبحثك</p>
+              <small>جرب كلمات بحث مختلفة</small>
+            </div>
+          )
+        }
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Mobile Design */}
@@ -282,43 +453,26 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             {/* Right Side Actions */}
             <div className="d-flex align-items-center gap-3">
               {/* Search Field */}
-              <form
-                onSubmit={handleSearchSubmit}
-                style={{ position: "relative" }}
-              >
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-control form-control-sm"
-                  style={{ width: "27vw", borderRadius: "20px" }}
-                />
-                {/* عرض الاقتراحات */}
-                {loadingSuggestions ?
-                  <div className="position-absolute w-100 mt-1 p-2 text-center bg-white border rounded">
-                    <span className="spinner-border spinner-border-sm me-2"></span>
-                    Searching...
-                  </div>
-                : searchSuggestions.length > 0 && (
-                    <ul
-                      className="list-group position-absolute w-100 mt-1"
-                      style={{ zIndex: 1000 }}
-                    >
-                      {searchSuggestions.map((p) => (
-                        <li
-                          key={p.id || p._id}
-                          className="list-group-item list-group-item-action"
-                          onClick={() => handleSuggestionClick(p.id || p._id)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {p.name || p.title}
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                }
-              </form>
+              <div ref={searchContainerRef} style={{ position: "relative" }}>
+                <form onSubmit={handleSearchSubmit}>
+                  <input
+                    type="text"
+                    placeholder="ابحث عن منتج"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={handleSearchFocus}
+                    className="form-control form-control-sm"
+                    dir="rtl"
+                    style={{
+                      width: "27vw",
+                      borderRadius: "20px",
+                      textAlign: "right",
+                      paddingRight: "15px",
+                    }}
+                  />
+                </form>
+                <SearchSuggestionsList />
+              </div>
 
               {/* Shopping Cart */}
               <div
@@ -577,13 +731,7 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
                               <h6 className="mb-2 text-center">
                                 Change Profile Picture
                               </h6>
-                              <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageSelect}
-                                accept="image/*"
-                                style={{ display: "none" }}
-                              />
+
                               <div className="d-flex flex-column gap-2">
                                 <button
                                   className="btn btn-sm btn-outline-primary w-100"
@@ -753,49 +901,32 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             {/* Search Field */}
             <div
               className="flex-grow-1 mx-3 searching"
-              style={{ maxWidth: "35vw" }}
+              style={{ maxWidth: "20vw" }}
             >
-              <form
-                onSubmit={handleSearchSubmit}
+              <div
+                ref={searchContainerRef}
                 style={{ position: "relative", width: "30vw" }}
               >
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-control"
-                  style={{
-                    width: "80%",
-                    borderRadius: "20px",
-                    border: "1px solid #ced4da",
-                  }}
-                />
-                {/* عرض الاقتراحات */}
-                {loadingSuggestions ?
-                  <div className="position-absolute w-100 mt-1 p-2 text-center bg-white border rounded">
-                    <span className="spinner-border spinner-border-sm me-2"></span>
-                    Searching...
-                  </div>
-                : searchSuggestions.length > 0 && (
-                    <ul
-                      className="list-group position-absolute w-100 mt-1"
-                      style={{ zIndex: 1000 }}
-                    >
-                      {searchSuggestions.map((p) => (
-                        <li
-                          key={p.id || p._id}
-                          className="list-group-item list-group-item-action"
-                          onClick={() => handleSuggestionClick(p.id || p._id)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {p.name || p.title}
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                }
-              </form>
+                <form onSubmit={handleSearchSubmit}>
+                  <input
+                    type="text"
+                    placeholder="ابحث عن منتج"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={handleSearchFocus}
+                    className="form-control"
+                    dir="rtl"
+                    style={{
+                      width: "70%",
+                      borderRadius: "20px",
+                      border: "1px solid #ced4da",
+                      padding: "10px 20px",
+                      textAlign: "right",
+                    }}
+                  />
+                </form>
+                <SearchSuggestionsList />
+              </div>
             </div>
 
             {/* Cart and Profile */}

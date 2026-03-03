@@ -84,39 +84,24 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
 
   // 3. Logic for Local Filtering & Sorting (منطق الفلترة والترتيب المحلي)
   useEffect(() => {
-    // استخدام المنتجات المخلوطة بدلاً من المنتجات الأصلية
     let result = [...shuffledProducts];
 
-    // Filter by Category
-    if (category !== "All Products") {
-      result = result.filter((p) => p.category === category);
-    }
+    if (q) {
+      result = result.filter((p) => {
+        const name = (p.name || p.title || "").toLowerCase();
+        const id = String(p.id || "");
+        const numeric = p.numericId != null ? String(p.numericId) : "";
 
-    // Sort Logic
-    switch (sortBy) {
-      case "price-low":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-high":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "name-asc":
-        result.sort((a, b) =>
-          (a.name || a.title || "").localeCompare(b.name || b.title || ""),
+        return (
+          name.includes(q.toLowerCase()) ||
+          numeric.includes(q) ||
+          id.includes(q)
         );
-        break;
-      case "name-desc":
-        result.sort((a, b) =>
-          (b.name || b.title || "").localeCompare(a.name || a.title || ""),
-        );
-        break;
-      default:
-        // في حالة default، نحافظ على الترتيب العشوائي ولا نغير شيئاً
-        break;
+      });
     }
 
     setFilteredProducts(result);
-  }, [shuffledProducts, category, sortBy]); // استخدام shuffledProducts بدلاً من products
+  }, [shuffledProducts, q]); // استخدام shuffledProducts بدلاً من products
 
   // 4. Dynamic Categories (إنشاء الفئات تلقائياً من المنتجات)
   const categories = React.useMemo(() => {
@@ -346,6 +331,11 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
           : <>
               <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
                 {filteredProducts.map((product) => {
+                  // determine URL identifier (numericId preferred)
+                  const urlId =
+                    product.numericId != null ?
+                      product.numericId
+                    : product.id || product._id;
                   const currentQty =
                     getQuantity(product.id || product._id) || 0;
                   const mainImage =
@@ -353,11 +343,11 @@ export default function Shop({ onAdd, getQuantity, searchQuery }) {
                   const productTitle = product.name || product.title;
 
                   return (
-                    <div key={product.id || product._id} className="col">
+                    <div key={urlId} className="col">
                       <div className="card product-card h-100 shadow-sm border-0 position-relative">
                         {/* Link حول الصورة والتفاصيل فقط */}
                         <Link
-                          to={`/shop/${product.id || product._id}`}
+                          to={`/shop/${urlId}`}
                           className="text-decoration-none text-dark"
                           style={{ display: "contents" }}
                         >
