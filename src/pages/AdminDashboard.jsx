@@ -31,6 +31,7 @@ export default function AdminDashboard() {
 
   // Product form state
   const [productForm, setProductForm] = useState({
+    customId: "",
     name: "",
     description: "",
     price: "",
@@ -149,14 +150,20 @@ export default function AdminDashboard() {
     setError(null);
 
     try {
+      // prepare payload (customId may be alphanumeric)
+      const payload = { ...productForm };
+      if (payload.customId) {
+        payload.customId = String(payload.customId).trim();
+      }
+
       if (editingProduct) {
         await productsAPI.update(
           editingProduct.id || editingProduct._id,
-          productForm,
+          payload,
         );
         setSuccess("Product updated successfully!");
       } else {
-        await productsAPI.create(productForm);
+        await productsAPI.create(payload);
         setSuccess("Product created successfully!");
       }
 
@@ -190,6 +197,7 @@ export default function AdminDashboard() {
   const handleEditProduct = (product) => {
     setEditingProduct(product);
     setProductForm({
+      customId: product.customId || "",
       name: product.name || product.title,
       description: product.description || "",
       price: product.price || "",
@@ -203,6 +211,7 @@ export default function AdminDashboard() {
   const resetProductForm = () => {
     setEditingProduct(null);
     setProductForm({
+      customId: "",
       name: "",
       description: "",
       price: "",
@@ -616,6 +625,24 @@ export default function AdminDashboard() {
                 <div className="card-body">
                   <form onSubmit={handleProductSubmit}>
                     <div className="mb-3">
+                      <label className="form-label">Custom ID</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={productForm.customId}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            customId: e.target.value,
+                          })
+                        }
+                        placeholder="Alphanumeric identifier (optional)"
+                      />
+                      <small className="text-muted">
+                        Letters and numbers allowed; used for search
+                      </small>
+                    </div>
+                    <div className="mb-3">
                       <label className="form-label">Product Name</label>
                       <input
                         type="text"
@@ -827,7 +854,9 @@ export default function AdminDashboard() {
                                   }
                                 >
                                   <td>
-                                    {product.numericId != null ?
+                                    {product.customId ?
+                                      product.customId
+                                    : product.numericId != null ?
                                       product.numericId
                                     : product.id || product._id}
                                   </td>

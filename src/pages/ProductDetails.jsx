@@ -20,9 +20,10 @@ export default function ProductDetails({
 
   // ⭐️ متغيرات التقييم والتعليقات ⭐️
 
-  // show product id for clarity (prefer numericId which starts from 1)
+  // show product id for clarity (prefer customId, then numericId)
   const displayId =
-    product && product.numericId != null ? product.numericId
+    product && product.customId ? product.customId
+    : product && product.numericId != null ? product.numericId
     : product ? product.id || product._id
     : id;
   const [rating, setRating] = useState(0);
@@ -179,11 +180,13 @@ export default function ProductDetails({
 
         // Filter products from same category (excluding current product)
         const currentProductId =
-          product.numericId != null ?
+          product.customId ||
+          (product.numericId != null ?
             product.numericId
-          : product.id || product._id;
+          : product.id || product._id);
         const related = productsArray.filter((p) => {
-          const pId = p.numericId != null ? p.numericId : p.id || p._id;
+          const pId =
+            p.customId || (p.numericId != null ? p.numericId : p.id || p._id);
           return p.category === product.category && pId !== currentProductId;
         });
 
@@ -384,10 +387,12 @@ export default function ProductDetails({
   };
 
   const handleRelatedProductClick = (product) => {
-    // Extract numeric ID preferring numericId for URLs
+    // choose id for URL: customId first, then numericId, then mongo id
     const productId =
-      product.numericId != null ? product.numericId : product.id || product._id;
-
+      product.customId ||
+      (product.numericId != null ?
+        product.numericId
+      : product.id || product._id);
     console.log("🎯 النقر على المنتج:", productId);
     console.log("📍 المنتج الحالي:", id);
     console.log("📍 المنتج الجديد:", productId);
@@ -467,7 +472,9 @@ export default function ProductDetails({
     product ?
       <small className="text-muted">
         ID:{" "}
-        {product.numericId != null ?
+        {product.customId ?
+          product.customId + ` (${product.id || product._id})`
+        : product.numericId != null ?
           product.numericId + ` (${product.id || product._id})`
         : product.id || product._id}
       </small>
@@ -881,7 +888,9 @@ export default function ProductDetails({
               <span className="text-muted small">الكود:</span>
               <span className="badge bg-light text-dark border">
                 #
-                {product.numericId != null ?
+                {product.customId ?
+                  product.customId
+                : product.numericId != null ?
                   product.numericId
                 : product.id || product._id}
               </span>
@@ -1395,9 +1404,10 @@ export default function ProductDetails({
             <div className="row">
               {relatedProducts.slice(0, 4).map((relatedProduct) => {
                 const relUrlId =
-                  relatedProduct.numericId != null ?
+                  relatedProduct.customId ||
+                  (relatedProduct.numericId != null ?
                     relatedProduct.numericId
-                  : relatedProduct.id || relatedProduct._id;
+                  : relatedProduct.id || relatedProduct._id);
                 return (
                   <div key={relUrlId} className="col-md-3 col-6 mb-4">
                     <div

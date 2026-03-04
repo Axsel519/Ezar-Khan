@@ -126,9 +126,12 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             const numeric =
               product.numericId != null ? String(product.numericId) : "";
             const mongoId = String(product.id || product._id || "");
+            const custom =
+              product.customId ? String(product.customId).toLowerCase() : "";
 
             return (
               name.startsWith(searchQuery.toLowerCase()) ||
+              custom.startsWith(searchQuery.toLowerCase()) ||
               numeric.startsWith(searchQuery) ||
               mongoId.startsWith(searchQuery)
             );
@@ -363,7 +366,8 @@ export default function Header({ cartCount = 0, searchQuery, setSearchQuery }) {
             <ul className="list-group list-group-flush">
               {searchSuggestions.map((p) => {
                 const targetId =
-                  p.numericId != null ? p.numericId : p.id || p._id;
+                  p.customId ||
+                  (p.numericId != null ? p.numericId : p.id || p._id);
                 return (
                   <li
                     key={targetId}
